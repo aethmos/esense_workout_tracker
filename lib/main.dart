@@ -1,8 +1,7 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
 
-// import 'package:flutter/services.dart';
 import 'package:esense_flutter/esense.dart';
+import 'package:flutter/material.dart';
 
 void main() => runApp(MyApp());
 
@@ -21,6 +20,15 @@ class _MyAppState extends State<MyApp> {
 
   // the name of the eSense device to connect to -- change this to your own device.
   String eSenseName = 'eSense-0332';
+
+  get darkTheme => ThemeData(
+        brightness: Brightness.dark,
+        primaryColorDark: Colors.blue,
+        accentColor: Colors.deepOrange,
+//      floatingActionButtonTheme: FloatingActionButtonThemeData(
+//          backgroundColor: Colors.deepOrange
+//      )
+      );
 
   @override
   void initState() {
@@ -149,23 +157,97 @@ class _MyAppState extends State<MyApp> {
 
   Widget build(BuildContext context) {
     return MaterialApp(
+      theme: ThemeData.light(),
+      darkTheme: darkTheme,
+      themeMode: ThemeMode.system,
       home: Scaffold(
         appBar: AppBar(
           title: const Text('eSense Demo App'),
         ),
-        body: Align(
-          alignment: Alignment.topLeft,
-          child: ListView(
-            children: [
-              Text('eSense Device Status: \t$_deviceStatus'),
-              Text('eSense Device Name: \t$_deviceName'),
-              Text('eSense Battery Level: \t$_voltage'),
-              Text('eSense Button Event: \t$_button'),
-              Text(''),
-              Text('$_event'),
-            ],
-          ),
+        body: Column(
+          children: <Widget>[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: <Widget>[
+                Card(
+                    margin: EdgeInsets.all(25),
+                    elevation: 15,
+                    color: Colors.white10,
+                    borderOnForeground: true,
+                    child: Padding(
+                      padding: EdgeInsets.all(25),
+                      child: Column(children: <Widget>[
+                        Icon(Icons.info_outline),
+                        Padding(
+                            padding: EdgeInsets.only(top: 15),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: <Widget>[
+                                Text('eSense Device Status:'),
+                                Text('\t$_deviceStatus')
+                              ],
+                            )),
+                        Padding(
+                            padding: EdgeInsets.only(top: 15),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: <Widget>[
+                                Text('eSense Device Status:'),
+                                Text('\t$_deviceName')
+                              ],
+                            )),
+                        Padding(
+                            padding: EdgeInsets.only(top: 15),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: <Widget>[
+                                Text('eSense Device Name:'),
+                                Text('\t$_voltage')
+                              ],
+                            )),
+                        Padding(
+                            padding: EdgeInsets.only(top: 15),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: <Widget>[
+                                Text('eSense Battery Level:'),
+                                Text('\t$_button')
+                              ],
+                            )),
+                        Padding(
+                            padding: EdgeInsets.only(top: 15),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceAround,
+                              children: <Widget>[
+                                Text('Event Type:'),
+                                Text('\t$_event')
+                              ],
+                            )),
+                      ]),
+                    ))
+              ],
+            )
+          ],
         ),
+//
+//        Align(
+//          alignment: Alignment.center,
+//          child: Column(
+//            mainAxisAlignment: MainAxisAlignment.start,
+//            crossAxisAlignment: CrossAxisAlignment.center,
+//            children: [
+//              Card(
+//                child: Row(
+//                  children: <Widget>[
+//                    Text('eSense Device Status:'),
+//                    Text('\t$_deviceStatus')
+//                  ],
+//                ),
+//              ),
+//
+//            ],
+//          ),
+//        ),
         floatingActionButton: new FloatingActionButton(
           // a floating button that starts/stops listening to sensor events.
           // is disabled until we're connected to the device.
