@@ -10,6 +10,32 @@ class MyApp extends StatefulWidget {
   _MyAppState createState() => _MyAppState();
 }
 
+class SensorDataDisplay extends StatelessWidget {
+  final label;
+  final value;
+
+  const SensorDataDisplay({Key key, this.label, this.value}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // TODO: implement build
+    return Padding(
+        padding: EdgeInsets.only(top: 15),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: <Widget>[
+            Text('$label',
+                style: TextStyle(
+                    fontSize: Theme.of(context).textTheme.title.fontSize)),
+            Container(
+              height: 5,
+            ),
+            Text('$value')
+          ],
+        ));
+  }
+}
+
 class _MyAppState extends State<MyApp> {
   String _deviceName = 'Unknown';
   double _voltage = -1;
@@ -23,8 +49,8 @@ class _MyAppState extends State<MyApp> {
 
   get darkTheme => ThemeData(
         brightness: Brightness.dark,
-        primaryColorDark: Colors.blue,
-        accentColor: Colors.deepOrange,
+        primaryColorDark: Colors.red,
+        accentColor: Colors.red,
 //      floatingActionButtonTheme: FloatingActionButtonThemeData(
 //          backgroundColor: Colors.deepOrange
 //      )
@@ -171,58 +197,33 @@ class _MyAppState extends State<MyApp> {
               children: <Widget>[
                 Card(
                     margin: EdgeInsets.all(25),
-                    elevation: 15,
-                    color: Colors.white10,
-                    borderOnForeground: true,
+                    elevation: 10,
+//                    shape: Border.all(color: Colors.red, width: 1),
+                    color: Colors.black38,
                     child: Padding(
                       padding: EdgeInsets.all(25),
                       child: Column(children: <Widget>[
                         Icon(Icons.info_outline),
-                        Padding(
-                            padding: EdgeInsets.only(top: 15),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: <Widget>[
-                                Text('eSense Device Status:'),
-                                Text('\t$_deviceStatus')
-                              ],
-                            )),
-                        Padding(
-                            padding: EdgeInsets.only(top: 15),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: <Widget>[
-                                Text('eSense Device Status:'),
-                                Text('\t$_deviceName')
-                              ],
-                            )),
-                        Padding(
-                            padding: EdgeInsets.only(top: 15),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: <Widget>[
-                                Text('eSense Device Name:'),
-                                Text('\t$_voltage')
-                              ],
-                            )),
-                        Padding(
-                            padding: EdgeInsets.only(top: 15),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: <Widget>[
-                                Text('eSense Battery Level:'),
-                                Text('\t$_button')
-                              ],
-                            )),
-                        Padding(
-                            padding: EdgeInsets.only(top: 15),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.spaceAround,
-                              children: <Widget>[
-                                Text('Event Type:'),
-                                Text('\t$_event')
-                              ],
-                            )),
+                        SensorDataDisplay(
+                          label: 'Device Status:',
+                          value: _deviceStatus,
+                        ),
+                        SensorDataDisplay(
+                          label: 'Device Name:',
+                          value: _deviceName,
+                        ),
+                        SensorDataDisplay(
+                          label: 'Battery Level:',
+                          value: _voltage,
+                        ),
+                        SensorDataDisplay(
+                          label: 'Button Pressed:',
+                          value: _button,
+                        ),
+                        SensorDataDisplay(
+                          label: 'Event Type:',
+                          value: _event,
+                        ),
                       ]),
                     ))
               ],
