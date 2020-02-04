@@ -30,7 +30,7 @@ class SensorDataDisplay extends StatelessWidget {
             Container(
               height: 5,
             ),
-            Text('$value')
+            Text('$value', overflow: TextOverflow.clip)
           ],
         ));
   }
@@ -45,7 +45,7 @@ class _MyAppState extends State<MyApp> {
   String _button = 'not pressed';
 
   // the name of the eSense device to connect to -- change this to your own device.
-  String eSenseName = 'eSense-0332';
+  String eSenseName = 'eSense-0151';
 
   get darkTheme => ThemeData(
         brightness: Brightness.dark,
@@ -59,7 +59,7 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-//    _connectToESense();
+    _connectToESense();
   }
 
   Future<void> _connectToESense() async {
@@ -96,7 +96,7 @@ class _MyAppState extends State<MyApp> {
     con = await ESenseManager.connect(eSenseName);
 
     setState(() {
-      _deviceStatus = con ? 'connecting' : 'connection failed';
+      _deviceStatus = con ? 'connecting to $eSenseName' : 'connection failed';
     });
   }
 
@@ -253,7 +253,7 @@ class _MyAppState extends State<MyApp> {
           // a floating button that starts/stops listening to sensor events.
           // is disabled until we're connected to the device.
           onPressed: (!ESenseManager.connected)
-              ? null
+              ? _connectToESense
               : (!sampling)
                   ? _startListenToSensorEvents
                   : _pauseListenToSensorEvents,
