@@ -160,7 +160,12 @@ class _MyAppState extends State<MyApp> {
     subscription = ESenseManager.sensorEvents.listen((event) {
       print('SENSOR event: $event');
       setState(() {
-        _event = event.toString();
+        String summary = '';
+        summary += '\nindex: ${event.packetIndex}';
+        summary += '\ntimestamp: ${event.timestamp}';
+        summary += '\naccel: ${event.accel}';
+        summary += '\ngyro: ${event.gyro}';
+        _event = summary;
       });
     });
     setState(() {
@@ -200,32 +205,36 @@ class _MyAppState extends State<MyApp> {
                     elevation: 10,
 //                    shape: Border.all(color: Colors.red, width: 1),
                     color: Colors.black38,
-                    child: Padding(
-                      padding: EdgeInsets.all(25),
-                      child: Column(children: <Widget>[
-                        Icon(Icons.info_outline),
-                        SensorDataDisplay(
-                          label: 'Device Status:',
-                          value: _deviceStatus,
-                        ),
-                        SensorDataDisplay(
-                          label: 'Device Name:',
-                          value: _deviceName,
-                        ),
-                        SensorDataDisplay(
-                          label: 'Battery Level:',
-                          value: _voltage,
-                        ),
-                        SensorDataDisplay(
-                          label: 'Button Pressed:',
-                          value: _button,
-                        ),
-                        SensorDataDisplay(
-                          label: 'Event Type:',
-                          value: _event,
-                        ),
-                      ]),
-                    ))
+                    child: Container(
+                        width: 300,
+                        child: Padding(
+                        padding: EdgeInsets.all(25),
+                        child: Column(children: <Widget>[
+                          Icon(Icons.info_outline),
+                          SensorDataDisplay(
+                            label: 'Device Status:',
+                            value: _deviceStatus,
+                          ),
+                          SensorDataDisplay(
+                            label: 'Device Name:',
+                            value: _deviceName,
+                          ),
+                          SensorDataDisplay(
+                            label: 'Battery Level:',
+                            value: _voltage,
+                          ),
+                          SensorDataDisplay(
+                            label: 'Button Pressed:',
+                            value: _button,
+                          ),
+                          SensorDataDisplay(
+                            label: 'Event Type:',
+                            value: _event,
+                          ),
+                        ]),
+                    )
+                  )
+                )
               ],
             )
           ],
