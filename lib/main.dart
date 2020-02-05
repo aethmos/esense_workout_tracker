@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:esense_flutter/esense.dart';
 import 'package:flutter/material.dart';
+import 'package:speech_to_text/speech_recognition_error.dart';
+import 'package:speech_to_text/speech_recognition_result.dart';
+import 'package:speech_to_text/speech_to_text.dart';
 
 void main() => runApp(MyApp());
 
@@ -43,9 +46,10 @@ class _MyAppState extends State<MyApp> {
   bool sampling = false;
   String _event = '';
   String _button = 'not pressed';
-
-  // the name of the eSense device to connect to -- change this to your own device.
-  String eSenseName = 'eSense-0151';
+  final SpeechToText speech = SpeechToText();
+  String lastWords = '';
+  String lastError = '';
+  String lastStatus = '';
 
   get darkTheme => ThemeData(
         brightness: Brightness.dark,
@@ -60,6 +64,7 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     _connectToESense();
+    setupRecognition();
   }
 
   Future<void> _connectToESense() async {
@@ -92,6 +97,10 @@ class _MyAppState extends State<MyApp> {
         }
       });
     });
+
+    // the name of the eSense device to connect to -- change this to your own device.
+    String eSenseName = 'eSense-0151';
+//    String eSenseName = 'eSense-1585';
 
     con = await ESenseManager.connect(eSenseName);
 
@@ -231,6 +240,10 @@ class _MyAppState extends State<MyApp> {
                             label: 'Event Type:',
                             value: _event,
                           ),
+                          SensorDataDisplay(
+                            label: 'Speech Input${speech.isListening ? ' - listening...' : ':'}',
+                            value: lastWords,
+                          ),
                         ]),
                     )
                   )
@@ -261,15 +274,72 @@ class _MyAppState extends State<MyApp> {
         floatingActionButton: new FloatingActionButton(
           // a floating button that starts/stops listening to sensor events.
           // is disabled until we're connected to the device.
-          onPressed: (!ESenseManager.connected)
-              ? _connectToESense
-              : (!sampling)
-                  ? _startListenToSensorEvents
-                  : _pauseListenToSensorEvents,
+          onPressed: speech.isListening? stopListening : startListening,
+//          (!ESenseManager.connected)
+//              ? _connectToESense
+//              : (!sampling)
+//                  ? _startListenToSensorEvents
+//                  : _pauseListenToSensorEvents,
           tooltip: 'Listen to eSense sensors',
-          child: (!sampling) ? Icon(Icons.hearing) : Icon(Icons.pause),
+          child: (!speech.isListening) ? Icon(Icons.hearing) : Icon(Icons.pause),
+//          child: (!sampling) ? Icon(Icons.hearing) : Icon(Icons.pause),
         ),
       ),
     );
+  }
+  void startListening() {
+    lastWords = "";
+    lastError = "";
+    speech.listen(onResult: resultListener );
+    setState(() {
+
+    });
+  }
+
+  void stopListening() {
+    speech.stop( );
+    setState(() {
+
+    });
+  }
+
+  void cancelListening() {
+    speech.cancel( );
+    setState(() {
+
+    });
+  }
+
+  void resultListener(SpeechRecognitionResult result) {
+    if (result.finalResult) {
+      setState(() {
+        lastWords = "${result.recognizedWords} - ${result.confidence}";
+      });
+      print(lastWords);
+    }
+  }
+
+  void errorListener(SpeechRecognitionError error ) {
+    setState(() {
+      lastError = "${error.errorMsg} - ${error.permanent}";
+    });
+    print(lastError);
+  }
+  void statusListener(String status ) {
+    setState(() {
+      lastStatus = "$status";
+    });
+//    print(lastStatus);
+  }
+
+  Future<void> setupRecognition() async {
+    bool available = await speech.initialize( onStatus: statusListener, onError: errorListener );
+    if ( available ) {
+      print("Speech recognition ready.");
+//      speech.listen( onResult: resultListener );
+    }
+    else {
+      print("The user has denied the use of speech recognition.");
+    }
   }
 }
