@@ -5,6 +5,7 @@ import 'package:esense_flutter/esense.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:speech_to_text/speech_recognition_error.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
@@ -315,6 +316,14 @@ class _MyAppState extends State<MyApp> {
   }
 
   Widget build(BuildContext context) {
+    SystemChrome.setSystemUIOverlayStyle(
+        SystemUiOverlayStyle(
+          statusBarColor: colorBg, //top bar color
+          statusBarIconBrightness: Brightness.dark, //top bar icons
+          systemNavigationBarColor: colorBg, //bottom bar color
+          systemNavigationBarIconBrightness: Brightness.dark, //bottom bar icons
+        )
+    );
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData.light(),
