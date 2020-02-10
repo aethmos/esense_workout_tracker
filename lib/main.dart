@@ -316,9 +316,11 @@ class _MyAppState extends State<MyApp> {
 
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       theme: ThemeData.light(),
       darkTheme: darkTheme,
       themeMode: ThemeMode.light,
+      title: '1up',
       home: Scaffold(
         backgroundColor: colorBg,
         body: Column(
@@ -354,43 +356,48 @@ class _MyAppState extends State<MyApp> {
                                     child: TextFormField(
                                       style: textHeading.copyWith(
                                           color: colorFgLight),
-                                      autofocus: true,
+                                      autofocus: false,
                                       autocorrect: false,
+                                      showCursor: true,
+                                      cursorRadius: Radius.circular(3),
                                       textCapitalization:
                                           TextCapitalization.none,
                                       initialValue: 'eSense-0151',
                                       decoration: InputDecoration(
                                         focusedBorder: InputBorder.none,
+                                        errorBorder: InputBorder.none,
+                                        border: InputBorder.none,
                                       ),
                                       onFieldSubmitted: (String value) {
                                         _connectToESense(eSenseName: value);
                                       },
                                     )),
                             Container(
-                              margin: EdgeInsets.only(top: 5),
+                                margin: EdgeInsets.only(top: 5),
                                 child: Row(
-                              children: (ESenseManager.connected)
-                                  ? [
-                                Icon(Icons.check,
-                                    color: colorGood,
-                                    size: textSubheading.fontSize),
-                                Text(
-                                  'Connected',
-                                  style: textSubheading,
-                                )
-                              ]
-                                  : tryingToConnect
-                                  ? [
-                                Icon(Icons.timelapse,
-                                    color: colorNeutral,
-                                    size: textSubheading.fontSize),
-                                Text(
-                                  'Connecting...',
-                                  style: textSubheading,
-                                )
-                              ]
-                                  : [],
-                            ))
+                                  children: (ESenseManager.connected)
+                                      ? [
+                                          Icon(Icons.check,
+                                              color: colorGood,
+                                              size: textSubheading.fontSize),
+                                          Text(
+                                            'Connected',
+                                            style: textSubheading,
+                                          )
+                                        ]
+                                      : tryingToConnect
+                                          ? [
+                                              Icon(Icons.timelapse,
+                                                  color: colorNeutral,
+                                                  size:
+                                                      textSubheading.fontSize),
+                                              Text(
+                                                'Connecting...',
+                                                style: textSubheading,
+                                              )
+                                            ]
+                                          : [],
+                                ))
                           ]),
                       Container(
                           height: 60,
@@ -486,33 +493,36 @@ class _MyAppState extends State<MyApp> {
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: sessionInProgress
                           ? [
-                        Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              color: colorBg,
-                              boxShadow: elevationShadowLight,
-                              borderRadius: borderRadius,
-                            ),
-                            child: Center(child: Icon(Icons.check, color: colorFgBold, size: 60),)
-                        ),
-                      ]
-                      : <Widget>[
-                        Icon(Icons.settings_backup_restore,
-                            color: colorFgBold, size: 30),
-                        Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: colorBg,
-                            boxShadow: elevationShadowLight,
-                            borderRadius: borderRadius,
-                          ),
-                          child: Center(child: Icon(Icons.directions_run,
-                              color: colorFgBold, size: 50),)
-                        ),
-                        Icon(Icons.share, color: colorFgBold, size: 30),
-                      ],
+                              Container(
+                                  width: 60,
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    color: colorBg,
+                                    boxShadow: elevationShadowLight,
+                                    borderRadius: borderRadius,
+                                  ),
+                                  child: Center(
+                                    child: Icon(Icons.check,
+                                        color: colorFgBold, size: 60),
+                                  )),
+                            ]
+                          : <Widget>[
+                              Icon(Icons.settings_backup_restore,
+                                  color: colorFgBold, size: 30),
+                              Container(
+                                  width: 60,
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    color: colorBg,
+                                    boxShadow: elevationShadowLight,
+                                    borderRadius: borderRadius,
+                                  ),
+                                  child: Center(
+                                    child: Icon(Icons.directions_run,
+                                        color: colorFgBold, size: 50),
+                                  )),
+                              Icon(Icons.share, color: colorFgBold, size: 30),
+                            ],
                     )
                   : Center(
                       child: Text(
