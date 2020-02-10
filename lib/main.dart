@@ -366,29 +366,31 @@ class _MyAppState extends State<MyApp> {
                                         _connectToESense(eSenseName: value);
                                       },
                                     )),
-                            Row(
+                            Container(
+                              margin: EdgeInsets.only(top: 5),
+                                child: Row(
                               children: (ESenseManager.connected)
                                   ? [
-                                      Icon(Icons.bluetooth_connected,
-                                          color: colorGood,
-                                          size: textSubheading.fontSize),
-                                      Text(
-                                        'Connected',
-                                        style: textSubheading,
-                                      )
-                                    ]
+                                Icon(Icons.check,
+                                    color: colorGood,
+                                    size: textSubheading.fontSize),
+                                Text(
+                                  'Connected',
+                                  style: textSubheading,
+                                )
+                              ]
                                   : tryingToConnect
-                                      ? [
-                                          Icon(Icons.timelapse,
-                                              color: colorNeutral,
-                                              size: textSubheading.fontSize),
-                                          Text(
-                                            'Connecting...',
-                                            style: textSubheading,
-                                          )
-                                        ]
-                                      : [],
-                            ),
+                                  ? [
+                                Icon(Icons.timelapse,
+                                    color: colorNeutral,
+                                    size: textSubheading.fontSize),
+                                Text(
+                                  'Connecting...',
+                                  style: textSubheading,
+                                )
+                              ]
+                                  : [],
+                            ))
                           ]),
                       Container(
                           height: 60,
@@ -400,7 +402,7 @@ class _MyAppState extends State<MyApp> {
                           ),
                           child: Icon(
                             (ESenseManager.connected)
-                                ? Icons.close
+                                ? Icons.delete_outline
                                 : Icons.bluetooth_searching,
                             color: textHeading.color,
                             size: 25,
@@ -469,7 +471,7 @@ class _MyAppState extends State<MyApp> {
 
             // actions
             Container(
-              height: 70,
+              height: 80,
               width: 300,
               decoration: BoxDecoration(
                 color: colorBg,
@@ -482,11 +484,33 @@ class _MyAppState extends State<MyApp> {
                   ? Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       crossAxisAlignment: CrossAxisAlignment.center,
-                      children: <Widget>[
+                      children: sessionInProgress
+                          ? [
+                        Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: colorBg,
+                              boxShadow: elevationShadowLight,
+                              borderRadius: borderRadius,
+                            ),
+                            child: Center(child: Icon(Icons.check, color: colorFgBold, size: 60),)
+                        ),
+                      ]
+                      : <Widget>[
                         Icon(Icons.settings_backup_restore,
                             color: colorFgBold, size: 30),
-                        Icon(sessionInProgress ? Icons.done : Icons.add_box,
-                            color: colorAccent, size: 60),
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: colorBg,
+                            boxShadow: elevationShadowLight,
+                            borderRadius: borderRadius,
+                          ),
+                          child: Center(child: Icon(Icons.directions_run,
+                              color: colorFgBold, size: 50),)
+                        ),
                         Icon(Icons.share, color: colorFgBold, size: 30),
                       ],
                     )
@@ -599,10 +623,10 @@ class _SummaryCardState extends State<StatefulWidget> {
       width: 300,
       decoration: BoxDecoration(
         color: colorBg,
-        border: Border.all(
-          width: 1.00,
-          color: colorAccentBorder,
-        ),
+//        border: Border.all(
+//          width: 1.00,
+//          color: colorAccentBorder,
+//        ),
         boxShadow: elevationShadow,
         borderRadius: borderRadius,
       ),
