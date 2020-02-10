@@ -1,4 +1,4 @@
-package com.aethmos.esense_connector
+package com.aethmos.one_up
 
 import androidx.annotation.NonNull;
 import io.flutter.embedding.android.FlutterActivity
