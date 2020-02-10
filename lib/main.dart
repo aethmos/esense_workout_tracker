@@ -345,43 +345,49 @@ class _MyAppState extends State<MyApp> {
                             (ESenseManager.connected)
                                 ? Text('eSense-1585', style: textHeading)
                                 : Container(
-                              width: 165,
-                              padding: EdgeInsets.only(left: 10),
-                              decoration: BoxDecoration(
-                                color: colorBg,
-                                boxShadow: elevationShadowLight,
-                                borderRadius: borderRadius
-                              ),
-                              child: TextFormField(
-                                style: textHeading.copyWith(color: colorFgLight),
-                                autofocus: true,
-                                autocorrect: false,
-                                textCapitalization: TextCapitalization.none,
-                                initialValue: 'eSense-0151',
-                                decoration: InputDecoration(
-                                  focusedBorder: InputBorder.none,
-                                ),
-                                onFieldSubmitted: (String value) {
-                                  _connectToESense(eSenseName: value);
-                                },)
-                            ),
+                                    width: 165,
+                                    padding: EdgeInsets.only(left: 10),
+                                    decoration: BoxDecoration(
+                                        color: colorBg,
+                                        boxShadow: elevationShadowLight,
+                                        borderRadius: borderRadius),
+                                    child: TextFormField(
+                                      style: textHeading.copyWith(
+                                          color: colorFgLight),
+                                      autofocus: true,
+                                      autocorrect: false,
+                                      textCapitalization:
+                                          TextCapitalization.none,
+                                      initialValue: 'eSense-0151',
+                                      decoration: InputDecoration(
+                                        focusedBorder: InputBorder.none,
+                                      ),
+                                      onFieldSubmitted: (String value) {
+                                        _connectToESense(eSenseName: value);
+                                      },
+                                    )),
                             Row(
-                              children: (ESenseManager.connected) ? <Widget>[
-                                  tryingToConnect
-                                   ? Icon(Icons.bluetooth_connected,
-                                        color: colorGood,
-                                        size: textSubheading.fontSize)
-                                    : Icon(Icons.timelapse,
-                                        color: colorDanger,
-                                        size: textSubheading.fontSize),
-                                Text(
-                                  (ESenseManager.connected)
-                                      ? 'Connected'
-                                      : 'Disconnected',
-                                  style: textSubheading,
-                                )
-                              ]
-                              : [],
+                              children: (ESenseManager.connected)
+                                  ? [
+                                      Icon(Icons.bluetooth_connected,
+                                          color: colorGood,
+                                          size: textSubheading.fontSize),
+                                      Text(
+                                        'Connected',
+                                        style: textSubheading,
+                                      )
+                                    ]
+                                  : tryingToConnect
+                                      ? [
+                                          Icon(Icons.timelapse,
+                                              color: colorNeutral,
+                                              size: textSubheading.fontSize),
+                                          Text(
+                                            'Connecting...',
+                                            style: textSubheading,
+                                          )
+                                        ]
+                                      : [],
                             ),
                           ]),
                       Container(
@@ -632,7 +638,9 @@ class _SummaryCardState extends State<StatefulWidget> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         mainAxisSize: MainAxisSize.max,
                         children: [
-                          Text('Sit-ups', style: textActivityLabel.copyWith(fontWeight: FontWeight.w400)),
+                          Text('Sit-ups',
+                              style: textActivityLabel.copyWith(
+                                  fontWeight: FontWeight.w400)),
                           Text('${0}', style: textActivityCounter),
                         ])),
                 Container(
@@ -642,7 +650,9 @@ class _SummaryCardState extends State<StatefulWidget> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         mainAxisSize: MainAxisSize.max,
                         children: [
-                          Text('Push-ups', style: textActivityLabel.copyWith(fontWeight: FontWeight.w400)),
+                          Text('Push-ups',
+                              style: textActivityLabel.copyWith(
+                                  fontWeight: FontWeight.w400)),
                           Text('${0}', style: textActivityCounter),
                         ])),
                 Container(
@@ -652,7 +662,9 @@ class _SummaryCardState extends State<StatefulWidget> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         mainAxisSize: MainAxisSize.max,
                         children: [
-                          Text('Pull-ups', style: textActivityLabel.copyWith(fontWeight: FontWeight.w400)),
+                          Text('Pull-ups',
+                              style: textActivityLabel.copyWith(
+                                  fontWeight: FontWeight.w400)),
                           Text('${0}', style: textActivityCounter),
                         ])),
                 Container(
@@ -662,7 +674,9 @@ class _SummaryCardState extends State<StatefulWidget> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         mainAxisSize: MainAxisSize.max,
                         children: [
-                          Text('Squats', style: textActivityLabel.copyWith(fontWeight: FontWeight.w400)),
+                          Text('Squats',
+                              style: textActivityLabel.copyWith(
+                                  fontWeight: FontWeight.w400)),
                           Text('${0}', style: textActivityCounter),
                         ])),
                 Container(
@@ -672,7 +686,9 @@ class _SummaryCardState extends State<StatefulWidget> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         mainAxisSize: MainAxisSize.max,
                         children: [
-                          Text('Burpees', style: textActivityLabel.copyWith(fontWeight: FontWeight.w400)),
+                          Text('Burpees',
+                              style: textActivityLabel.copyWith(
+                                  fontWeight: FontWeight.w400)),
                           Text('${0}', style: textActivityCounter),
                         ])),
               ]),
