@@ -6,6 +6,63 @@ import 'package:speech_to_text/speech_recognition_error.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
+final colorBgMain = Color(0xFFEEEEEE);
+
+final colorFgLight = Color(0xFF707070);
+final colorFg = Color(0xFF1E1E1E);
+final colorFgBold = Color(0xFF1A1A1A);
+
+final colorAccent = Color(0xFF8E00CC);
+
+final colorGradientBegin = Color(0xFFB143E0);
+final colorGradientEnd = Color(0xFFF6009B);
+
+final colorAccentBorder = Color(0x668E00CC);
+final colorShadowDark = Color(0x33000000);
+final colorShadowLight = Color(0x88FFFFFF);
+
+final colorGood = Color(0xFF19C530);
+final colorNeutral = Color(0xFFE6A100);
+final colorDanger = Color(0xFFE1154B);
+
+final textCalendarDayToday = TextStyle(
+  fontFamily: "Jost*",fontWeight: FontWeight.w500,
+  fontSize: 35,
+  color: colorAccent,
+);
+final textCalendarDay = TextStyle(
+  fontFamily: "Jost*",fontWeight: FontWeight.w500,
+  fontSize: 35,
+  color: colorFgBold,
+);
+final textCalendarMonth = TextStyle(
+fontFamily: "Jost*",fontWeight: FontWeight.w300,
+fontSize: 16,
+color: colorFg,
+);
+
+final textActivityLabel = TextStyle(
+  fontFamily: "Jost*",fontWeight: FontWeight.w500,
+  fontSize: 28,
+  color: colorFgBold,
+);
+final textActivityCounter = TextStyle(
+  fontFamily: "Jost*",fontWeight: FontWeight.w500,
+  fontSize: 35,
+  color: colorAccent,
+);
+
+final textHeading = TextStyle(
+fontFamily: "Jost*",fontWeight: FontWeight.w300,
+fontSize: 26,
+color: colorFg,
+);
+final textSubheading = TextStyle(
+fontFamily: "Jost*",fontWeight: FontWeight.w300,
+fontSize: 16,
+color: colorFgLight,
+);
+
 void main() => runApp(MyApp());
 
 class MyApp extends StatefulWidget {
