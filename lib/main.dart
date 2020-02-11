@@ -324,6 +324,10 @@ class _MyAppState extends State<MyApp> {
           systemNavigationBarIconBrightness: Brightness.dark, //bottom bar icons
         )
     );
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData.light(),
