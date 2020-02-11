@@ -7,8 +7,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:speech_to_text/speech_recognition_error.dart';
-import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 final colorBg = Color(0xFFEAEAEA);
@@ -116,7 +114,7 @@ final elevationShadowExtraLight = [
   ),
 ];
 
-final month2Name = Map.from({
+final monthShortLabels = Map.from({
   1: 'JAN',
   2: 'FEB',
   3: 'MAR',
@@ -139,7 +137,6 @@ class SensorDataDisplay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TODO: implement build
     return Padding(
         padding: EdgeInsets.only(top: 15),
         child: Column(
@@ -154,6 +151,26 @@ class SensorDataDisplay extends StatelessWidget {
             Text('$value', overflow: TextOverflow.clip)
           ],
         ));
+  }
+}
+
+class SummaryData {
+  int id;
+  DateTime date;
+  Map<String, int> counters;
+
+  SummaryData(this.id, this.date, this.counters) {
+    if (this.date == null) {
+      this.date = DateTime.now();
+    }
+    if (this.counters == null) {
+      this.counters = {
+        'Sit-ups': 0,
+        'Push-ups': 0,
+        'Pull-ups': 0,
+        'Squats': 0,
+      };
+    }
   }
 }
 
@@ -177,7 +194,8 @@ class _MyAppState extends State<MyApp> {
   String lastStatus = '';
   bool sessionInProgress = false;
   bool tryingToConnect = false;
-  ScrollController _scrollController;
+  List<SummaryData> _summaries = new List();
+  PageController _carouselController;
 
   get darkTheme => ThemeData(
         brightness: Brightness.dark,
@@ -190,10 +208,21 @@ class _MyAppState extends State<MyApp> {
 
   @override
   void initState() {
-    _scrollController = new ScrollController();
+    _initSummaries();
+    _carouselController = PageController(
+        viewportFraction: (300 / 370),
+        initialPage: _summaries.length,  // TODO: remove along with _connectionSummary
+        keepPage: true);
     _connectToESense();
-    setupRecognition();
     super.initState();
+  }
+
+  @override
+  void dispose() {
+    _carouselController.dispose();
+    _pauseListenToSensorEvents();
+    ESenseManager.disconnect();
+    super.dispose();
   }
 
   Future<void> _connectToESense({eSenseName = 'eSense-0151'}) async {
@@ -312,12 +341,6 @@ class _MyAppState extends State<MyApp> {
     });
   }
 
-  void dispose() {
-    _pauseListenToSensorEvents();
-    ESenseManager.disconnect();
-    super.dispose();
-  }
-
   Widget build(BuildContext context) {
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
       statusBarColor: colorBg, //top bar color
@@ -341,308 +364,284 @@ class _MyAppState extends State<MyApp> {
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
-            // header
-            Container(
-                height: 100,
-                width: 300,
-                decoration: BoxDecoration(
-                  color: colorBg,
-                  boxShadow: elevationShadow,
-                  borderRadius: borderRadius,
-                ),
-                margin: EdgeInsets.only(top: 40),
-                child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            (ESenseManager.connected)
-                                ? Text('eSense-1585', style: textHeading)
-                                : Container(
-                                    width: 165,
-                                    padding: EdgeInsets.only(left: 10),
-                                    decoration: BoxDecoration(
-                                        color: colorBg,
-                                        boxShadow: elevationShadowLight,
-                                        borderRadius: borderRadius),
-                                    child: TextFormField(
-                                      style: textHeading.copyWith(
-                                          color: colorFgLight),
-                                      autofocus: false,
-                                      autocorrect: false,
-                                      showCursor: true,
-                                      cursorRadius: Radius.circular(3),
-                                      textCapitalization:
-                                          TextCapitalization.none,
-                                      initialValue: 'eSense-0151',
-                                      decoration: InputDecoration(
-                                        focusedBorder: InputBorder.none,
-                                        errorBorder: InputBorder.none,
-                                        border: InputBorder.none,
-                                      ),
-                                      onFieldSubmitted: (String value) {
-                                        _connectToESense(eSenseName: value);
-                                      },
-                                    )),
-                            Container(
-                                margin: EdgeInsets.only(top: 5),
-                                child: Row(
-                                  children: (ESenseManager.connected)
-                                      ? [
-                                          Icon(Icons.check,
-                                              color: colorGood,
-                                              size: textSubheading.fontSize),
-                                          Text(
-                                            'Connected',
-                                            style: textSubheading,
-                                          )
-                                        ]
-                                      : tryingToConnect
-                                          ? [
-                                              Icon(Icons.timelapse,
-                                                  color: colorNeutral,
-                                                  size:
-                                                      textSubheading.fontSize),
-                                              Text(
-                                                'Connecting...',
-                                                style: textSubheading,
-                                              )
-                                            ]
-                                          : [],
-                                ))
-                          ]),
-                      Container(
-                          height: 60,
-                          width: 60,
-                          decoration: BoxDecoration(
-                            color: colorBg,
-                            boxShadow: elevationShadowExtraLight,
-                            borderRadius: borderRadius,
-                          ),
-                          child: Icon(
-                            (ESenseManager.connected)
-                                ? Icons.delete_outline
-                                : Icons.bluetooth_searching,
-                            color: textHeading.color,
-                            size: 25,
-                          ))
-                    ])),
-
-            // overview card
-            Expanded(
-                flex: 3,
-                child: Container(
-                    margin: EdgeInsets.only(top: 40, bottom: 40),
-                    child: ListView(
-                      scrollDirection: Axis.horizontal,
-                      controller: _scrollController,
-                      physics: BouncingScrollPhysics(),
-                      children: <Widget>[
-                        Container(width: 35),
-                        Container(
-                            height: 460,
-                            width: 300,
-                            decoration: BoxDecoration(
-                              color: colorBg,
-                              border: Border.all(
-                                width: 1.00,
-                                color: colorAccentBorder,
-                              ),
-                              boxShadow: elevationShadow,
-                              borderRadius: borderRadius,
-                            ),
-                            margin: EdgeInsets.all(20),
-                            padding: EdgeInsets.all(25),
-                            child: Column(children: <Widget>[
-                              Icon(Icons.info_outline),
-                              SensorDataDisplay(
-                                label: 'Device Status:',
-                                value: _deviceStatus,
-                              ),
-                              SensorDataDisplay(
-                                label: 'Device Name:',
-                                value: _deviceName,
-                              ),
-                              SensorDataDisplay(
-                                label: 'Battery Level:',
-                                value: _voltage,
-                              ),
-                              SensorDataDisplay(
-                                label: 'Button Pressed:',
-                                value: _button,
-                              ),
-                              SensorDataDisplay(
-                                label: 'Event Type:',
-                                value: _event,
-                              ),
-                              SensorDataDisplay(
-                                label:
-                                    'Speech Input${speech.isListening ? ' - listening...' : ':'}',
-                                value: lastWords,
-                              )
-                            ])),
-                        SummaryCard(),
-                        SummaryCard(),
-                        Container(
-                          width: 35,
-                        ),
-                      ],
-                    ))),
-
-            // actions
-            Container(
-              height: 80,
-              width: 300,
-              decoration: BoxDecoration(
-                color: colorBg,
-                boxShadow: elevationShadow,
-                borderRadius: borderRadius,
-              ),
-              margin: EdgeInsets.only(bottom: 40),
-//                    shape: Border.all(color: Colors.red, width: 1),
-              child: (ESenseManager.connected)
-                  ? Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: sessionInProgress
-                          ? [
-                              Container(
-                                  width: 60,
-                                  height: 60,
-                                  decoration: BoxDecoration(
-                                    color: colorBg,
-                                    boxShadow: elevationShadowLight,
-                                    borderRadius: borderRadius,
-                                  ),
-                                  child: Center(
-                                    child: Icon(Icons.check,
-                                        color: colorFgBold, size: 60),
-                                  )),
-                            ]
-                          : <Widget>[
-                              Icon(Icons.settings_backup_restore,
-                                  color: colorFgBold, size: 30),
-                              Container(
-                                  width: 60,
-                                  height: 60,
-                                  decoration: BoxDecoration(
-                                    color: colorBg,
-                                    boxShadow: elevationShadowLight,
-                                    borderRadius: borderRadius,
-                                  ),
-                                  child: Center(
-                                      child: new SvgPicture.asset(
-                                    'assets/sport.svg',
-                                    color: colorFgBold,
-                                    height: 45,
-                                    width: 45,
-                                  ))),
-                              Icon(Icons.share, color: colorFgBold, size: 30),
-                            ],
-                    )
-                  : Center(
-                      child: Text(
-                      'Connect',
-                      style: textCalendarDayToday,
-                    )),
-            ),
+            _headerPanel(),
+            _snappyCarousel([..._summaries.map((data) => SummaryCard(data)).toList(), _connectionSummary()]),
+            _actionsPanel(),
           ],
         ),
-//        floatingActionButton: new FloatingActionButton(
-//          // a floating button that starts/stops listening to sensor events.
-//          // is disabled until we're connected to the device.
-//          onPressed: speech.isListening ? stopListening : startListening,
-////          (!ESenseManager.connected)
-////              ? _connectToESense
-////              : (!sampling)
-////                  ? _startListenToSensorEvents
-////                  : _pauseListenToSensorEvents,
-//          tooltip: 'Listen to eSense sensors',
-//          child:
-//              (!speech.isListening) ? Icon(Icons.hearing) : Icon(Icons.pause),
-////          child: (!sampling) ? Icon(Icons.hearing) : Icon(Icons.pause),
-//        ),
       ),
     );
   }
 
-  void startListening() {
-    lastWords = "";
-    lastError = "";
-    speech.listen(onResult: resultListener);
-    setState(() {});
+  Widget _headerPanel() {
+    return Container(
+        height: 100,
+        width: 300,
+        decoration: BoxDecoration(
+          color: colorBg,
+          boxShadow: elevationShadow,
+          borderRadius: borderRadius,
+        ),
+        margin: EdgeInsets.only(top: 40),
+        child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                (ESenseManager.connected)
+                    ? Text('eSense-1585', style: textHeading)
+                    : Container(
+                        width: 165,
+                        padding: EdgeInsets.only(left: 10),
+                        decoration: BoxDecoration(
+                            color: colorBg,
+                            boxShadow: elevationShadowLight,
+                            borderRadius: borderRadius),
+                        child: TextFormField(
+                          style: textHeading.copyWith(color: colorFgLight),
+                          autofocus: false,
+                          autocorrect: false,
+                          showCursor: true,
+                          cursorRadius: Radius.circular(3),
+                          textCapitalization: TextCapitalization.none,
+                          initialValue: 'eSense-0151',
+                          decoration: InputDecoration(
+                            focusedBorder: InputBorder.none,
+                            errorBorder: InputBorder.none,
+                            border: InputBorder.none,
+                          ),
+                          onFieldSubmitted: (String value) {
+                            _connectToESense(eSenseName: value);
+                          },
+                        )),
+                Container(
+                    margin: EdgeInsets.only(top: 5),
+                    child: Row(
+                      children: (ESenseManager.connected)
+                          ? [
+                              Icon(Icons.check,
+                                  color: colorGood,
+                                  size: textSubheading.fontSize),
+                              Text(
+                                'Connected',
+                                style: textSubheading,
+                              )
+                            ]
+                          : tryingToConnect
+                              ? [
+                                  Icon(Icons.timelapse,
+                                      color: colorNeutral,
+                                      size: textSubheading.fontSize),
+                                  Text(
+                                    'Connecting...',
+                                    style: textSubheading,
+                                  )
+                                ]
+                              : [],
+                    ))
+              ]),
+              Container(
+                  height: 60,
+                  width: 60,
+                  decoration: BoxDecoration(
+                    color: colorBg,
+                    boxShadow: elevationShadowExtraLight,
+                    borderRadius: borderRadius,
+                  ),
+                  child: Icon(
+                    (ESenseManager.connected)
+                        ? Icons.delete_outline
+                        : Icons.bluetooth_searching,
+                    color: textHeading.color,
+                    size: 25,
+                  ))
+            ]));
   }
 
-  void stopListening() {
-    speech.stop();
-    setState(() {});
+  Widget _connectionSummary() {
+    return Container(
+        height: 460,
+        width: 300,
+        decoration: BoxDecoration(
+          color: colorBg,
+          border: Border.all(
+            width: 1.00,
+            color: colorAccentBorder,
+          ),
+          boxShadow: elevationShadow,
+          borderRadius: borderRadius,
+        ),
+        margin: EdgeInsets.all(20),
+        padding: EdgeInsets.all(25),
+        child: Column(children: <Widget>[
+          Icon(Icons.info_outline),
+          SensorDataDisplay(
+            label: 'Device Status:',
+            value: _deviceStatus,
+          ),
+          SensorDataDisplay(
+            label: 'Device Name:',
+            value: _deviceName,
+          ),
+          SensorDataDisplay(
+            label: 'Battery Level:',
+            value: _voltage,
+          ),
+          SensorDataDisplay(
+            label: 'Button Pressed:',
+            value: _button,
+          ),
+          SensorDataDisplay(
+            label: 'Event Type:',
+            value: _event,
+          ),
+          SensorDataDisplay(
+            label:
+                'Speech Input${speech.isListening ? ' - listening...' : ':'}',
+            value: lastWords,
+          )
+        ]));
   }
 
-  void cancelListening() {
-    speech.cancel();
-    setState(() {});
+
+  Widget _snappyCarousel(List<Widget> items) {
+    return Expanded(
+        flex: 3,
+        child: Container(
+            margin: EdgeInsets.symmetric(vertical: 40),
+            child: PageView.builder(
+                controller: _carouselController,
+                scrollDirection: Axis.horizontal,
+                physics: BouncingScrollPhysics(),
+                itemCount: items.length,
+                itemBuilder: (context, index) => items[index])));
   }
 
-  void resultListener(SpeechRecognitionResult result) {
-    if (result.finalResult) {
-      setState(() {
-        lastWords = "${result.recognizedWords} - ${result.confidence}";
-      });
-      print(lastWords);
-    }
+  Widget _actionsPanel() {
+    return Container(
+      height: 80,
+      width: 300,
+      decoration: BoxDecoration(
+        color: colorBg,
+        boxShadow: elevationShadow,
+        borderRadius: borderRadius,
+      ),
+      margin: EdgeInsets.only(bottom: 40),
+//                    shape: Border.all(color: Colors.red, width: 1),
+      child: (ESenseManager.connected)
+          ? Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: sessionInProgress
+                  ? [
+                      Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: colorBg,
+                            boxShadow: elevationShadowLight,
+                            borderRadius: borderRadius,
+                          ),
+                          child: Center(
+                            child:
+                                Icon(Icons.check, color: colorFgBold, size: 60),
+                          )),
+                    ]
+                  : <Widget>[
+                      Icon(Icons.settings_backup_restore,
+                          color: colorFgBold, size: 30),
+                      Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: colorBg,
+                            boxShadow: elevationShadowLight,
+                            borderRadius: borderRadius,
+                          ),
+                          child: Center(
+                              child: new SvgPicture.asset(
+                            'assets/sport.svg',
+                            color: colorFgBold,
+                            height: 45,
+                            width: 45,
+                          ))),
+                      Icon(Icons.share, color: colorFgBold, size: 30),
+                    ],
+            )
+          : Center(
+              child: Text(
+              'Connect',
+              style: textCalendarDayToday,
+            )),
+    );
   }
 
-  void errorListener(SpeechRecognitionError error) {
-    setState(() {
-      lastError = "${error.errorMsg} - ${error.permanent}";
-    });
-    print(lastError);
-  }
-
-  void statusListener(String status) {
-    setState(() {
-      lastStatus = "$status";
-    });
-//    print(lastStatus);
-  }
-
-  Future<void> setupRecognition() async {
-    bool available = await speech.initialize(
-        onStatus: statusListener, onError: errorListener);
-    if (available) {
-      print("Speech recognition ready.");
-//      speech.listen( onResult: resultListener );
-    } else {
-      print("The user has denied the use of speech recognition.");
+  void _initSummaries() {
+    _summaries = [
+      SummaryData(1, DateTime(2020, 2, 2), {
+        'Sit-ups': 23,
+        'Push-ups': 15,
+        'Pull-ups': 9,
+        'Squats': 18,
+      }),
+      SummaryData(2, DateTime(2020, 2, 4), {
+        'Sit-ups': 23,
+        'Push-ups': 15,
+        'Pull-ups': 9,
+        'Squats': 18,
+      }),
+      SummaryData(3, DateTime(2020, 2, 5), {
+        'Sit-ups': 23,
+        'Push-ups': 15,
+        'Pull-ups': 9,
+        'Squats': 18,
+      }),
+      SummaryData(4, DateTime(2020, 2, 10), {
+        'Sit-ups': 23,
+        'Push-ups': 15,
+        'Pull-ups': 9,
+        'Squats': 18,
+      }),
+    ];
+    final today = DateTime.now();
+    if (_summaries.last.date.year == today.year ||
+        _summaries.last.date.month == today.month ||
+        _summaries.last.date.day == today.day) {
+      _summaries.add(SummaryData(_summaries.last.id + 1, null, null));
     }
   }
 }
 
 class SummaryCard extends StatefulWidget {
+  final SummaryData summary;
+  const SummaryCard(this.summary);
+
   @override
   _SummaryCardState createState() => _SummaryCardState();
 }
 
-class _SummaryCardState extends State<StatefulWidget> {
-//  int _sitUpCount = 0;
-//  int _pushUpCount = 0;
-//  int _pullUpCount = 0;
-//  int _squatCount = 0;
-//  int _burpeeCount = 0;
-//
-//  @override
-//  void initState() {
-//    setState(() {
-//      _sitUpCount = 0;
-//      _pushUpCount = 0;
-//      _pullUpCount = 0;
-//      _squatCount = 0;
-//      _burpeeCount = 0;
-//    });
-//    super.initState();
-//  }
+class _SummaryCardState extends State<SummaryCard> {
+  SummaryData _summary;
+
+  @override
+  void initState() {
+    setState(() {
+      _summary = widget.summary;
+    });
+    super.initState();
+  }
+
+  void resetCounters() {
+    setState(() {
+      _summary.counters.keys.map((String key) => _summary.counters[key] = 0);
+    });
+  }
+
+  void incrementActivity(String label) {
+    setState(() {
+      _summary.counters[label] += 1;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -651,10 +650,6 @@ class _SummaryCardState extends State<StatefulWidget> {
       width: 300,
       decoration: BoxDecoration(
         color: colorBg,
-//        border: Border.all(
-//          width: 1.00,
-//          color: colorAccentBorder,
-//        ),
         boxShadow: elevationShadow,
         borderRadius: borderRadius,
       ),
@@ -669,11 +664,11 @@ class _SummaryCardState extends State<StatefulWidget> {
 //                  color: colorFgBold, size: textHeading.fontSize * 1.5),
               Container(width: 5),
               Text(
-                'Overview',
+                '${_summary.id} | Overview',
                 style: textHeading,
               ),
               Container(width: 20),
-              CalendarTile()
+              _calendarTile(_summary.date)
             ]),
         Expanded(
           child: Container(
@@ -681,94 +676,27 @@ class _SummaryCardState extends State<StatefulWidget> {
             child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisSize: MainAxisSize.max,
-                children: <Widget>[
-                  Container(
-                      margin: EdgeInsets.only(top: 20),
-                      child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          mainAxisSize: MainAxisSize.max,
-                          children: [
-                            Text('Sit-ups',
-                                style: textActivityLabel.copyWith(
-                                    fontWeight: FontWeight.w400)),
-                            Text('${0}', style: textActivityCounter),
-                          ])),
-                  Container(
-                      margin: EdgeInsets.only(top: 20),
-                      child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          mainAxisSize: MainAxisSize.max,
-                          children: [
-                            Text('Push-ups',
-                                style: textActivityLabel.copyWith(
-                                    fontWeight: FontWeight.w400)),
-                            Text('${0}', style: textActivityCounter),
-                          ])),
-                  Container(
-                      margin: EdgeInsets.only(top: 20),
-                      child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          mainAxisSize: MainAxisSize.max,
-                          children: [
-                            Text('Pull-ups',
-                                style: textActivityLabel.copyWith(
-                                    fontWeight: FontWeight.w400)),
-                            Text('${0}', style: textActivityCounter),
-                          ])),
-                  Container(
-                      margin: EdgeInsets.only(top: 20),
-                      child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          mainAxisSize: MainAxisSize.max,
-                          children: [
-                            Text('Squats',
-                                style: textActivityLabel.copyWith(
-                                    fontWeight: FontWeight.w400)),
-                            Text('${0}', style: textActivityCounter),
-                          ])),
-//                Container(
-//                    margin: EdgeInsets.only(top: 20),
-//                    child: Row(
-//                        crossAxisAlignment: CrossAxisAlignment.center,
-//                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-//                        mainAxisSize: MainAxisSize.max,
-//                        children: [
-//                          Text('Burpees',
-//                              style: textActivityLabel.copyWith(
-//                                  fontWeight: FontWeight.w400)),
-//                          Text('${0}', style: textActivityCounter),
-//                        ])),
-                ]),
+                children: _summary.counters.keys.map((String key) {
+                  return _counterDisplay(key, _summary.counters[key]);
+                }).toList()),
           ),
         )
       ]),
     );
   }
-}
 
-class CalendarTile extends StatefulWidget {
-  CalendarTile({Key key, day = 1, month = 1});
+  Widget _calendarTile(DateTime date) {
+    if (date == null) {
+      date = DateTime.now();
+    }
 
-  @override
-  _CalendarTileState createState() => _CalendarTileState();
-}
-
-class _CalendarTileState extends State<CalendarTile> {
-  int day = 10;
-  int month = 2;
-
-  get isToday {
     var today = DateTime.now();
-    return today.day == day && today.month == month;
-  }
+    bool isToday = today.day == date.day && today.month == date.month;
 
-  @override
-  Widget build(BuildContext context) {
+    void goToToday() {
+//      _carouselController.animateToPage(items.length - 1, duration: Duration(milliseconds: 300), curve: ElasticInOutCurve());
+    }
+
     return Container(
         height: 60,
         width: 60,
@@ -778,9 +706,24 @@ class _CalendarTileState extends State<CalendarTile> {
           borderRadius: borderRadius,
         ),
         child: Column(children: <Widget>[
-          Text(day > 9 ? '$day' : '0$day',
+          Text(date.day > 9 ? '${date.day}' : '0${date.day}',
               style: isToday ? textCalendarDayToday : textCalendarDay),
-          Text(month2Name[month], style: textCalendarMonth)
+          Text(monthShortLabels[date.month], style: textCalendarMonth)
         ]));
+  }
+
+  Widget _counterDisplay(String label, int value) {
+    return new Container(
+        margin: EdgeInsets.only(top: 20),
+        child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisSize: MainAxisSize.max,
+            children: [
+              Text('$label',
+                  style:
+                      textActivityLabel.copyWith(fontWeight: FontWeight.w400)),
+              Text('$value', style: textActivityCounter),
+            ]));
   }
 }
