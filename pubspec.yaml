@@ -25,6 +25,7 @@ dependencies:
   cupertino_icons: ^0.1.2
   esense_flutter: ^0.2.0+2
   speech_to_text: ^0.8.0
+  flutter_svg:
 
 dev_dependencies:
   flutter_test:
@@ -53,6 +54,7 @@ flutter:
 
   assets:
     - assets/logo.png
+    - assets/sport.svg
   # For details regarding adding assets from package dependencies, see
   # https://flutter.dev/assets-and-images/#from-packages
 

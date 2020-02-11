@@ -6,6 +6,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:speech_to_text/speech_recognition_error.dart';
 import 'package:speech_to_text/speech_recognition_result.dart';
 import 'package:speech_to_text/speech_to_text.dart';
@@ -531,8 +532,8 @@ class _MyAppState extends State<MyApp> {
                                     borderRadius: borderRadius,
                                   ),
                                   child: Center(
-                                    child: Icon(Icons.directions_run,
-                                        color: colorFgBold, size: 50),
+                                    child:
+                                      new SvgPicture.asset('assets/sport.svg', color: colorFgBold, height: 45, width: 45,)
                                   )),
                               Icon(Icons.share, color: colorFgBold, size: 30),
                             ],
