@@ -177,6 +177,7 @@ class _MyAppState extends State<MyApp> {
   String lastStatus = '';
   bool sessionInProgress = false;
   bool tryingToConnect = false;
+  ScrollController _scrollController;
 
   get darkTheme => ThemeData(
         brightness: Brightness.dark,
@@ -189,9 +190,10 @@ class _MyAppState extends State<MyApp> {
 
   @override
   void initState() {
-    super.initState();
+    _scrollController = new ScrollController();
     _connectToESense();
     setupRecognition();
+    super.initState();
   }
 
   Future<void> _connectToESense({eSenseName = 'eSense-0151'}) async {
@@ -317,14 +319,12 @@ class _MyAppState extends State<MyApp> {
   }
 
   Widget build(BuildContext context) {
-    SystemChrome.setSystemUIOverlayStyle(
-        SystemUiOverlayStyle(
-          statusBarColor: colorBg, //top bar color
-          statusBarIconBrightness: Brightness.dark, //top bar icons
-          systemNavigationBarColor: colorBg, //bottom bar color
-          systemNavigationBarIconBrightness: Brightness.dark, //bottom bar icons
-        )
-    );
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle(
+      statusBarColor: colorBg, //top bar color
+      statusBarIconBrightness: Brightness.dark, //top bar icons
+      systemNavigationBarColor: colorBg, //bottom bar color
+      systemNavigationBarIconBrightness: Brightness.dark, //bottom bar icons
+    ));
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.portraitUp,
       DeviceOrientation.portraitDown,
@@ -437,6 +437,7 @@ class _MyAppState extends State<MyApp> {
                     margin: EdgeInsets.only(top: 40, bottom: 40),
                     child: ListView(
                       scrollDirection: Axis.horizontal,
+                      controller: _scrollController,
                       physics: BouncingScrollPhysics(),
                       children: <Widget>[
                         Container(width: 35),
@@ -532,9 +533,12 @@ class _MyAppState extends State<MyApp> {
                                     borderRadius: borderRadius,
                                   ),
                                   child: Center(
-                                    child:
-                                      new SvgPicture.asset('assets/sport.svg', color: colorFgBold, height: 45, width: 45,)
-                                  )),
+                                      child: new SvgPicture.asset(
+                                    'assets/sport.svg',
+                                    color: colorFgBold,
+                                    height: 45,
+                                    width: 45,
+                                  ))),
                               Icon(Icons.share, color: colorFgBold, size: 30),
                             ],
                     )
@@ -671,75 +675,76 @@ class _SummaryCardState extends State<StatefulWidget> {
               Container(width: 20),
               CalendarTile()
             ]),
-        Container(
-          width: 200,
-          margin: EdgeInsets.only(top: 30),
-          child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              mainAxisSize: MainAxisSize.max,
-              children: <Widget>[
-                Container(
-                    margin: EdgeInsets.only(top: 10),
-                    child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        mainAxisSize: MainAxisSize.max,
-                        children: [
-                          Text('Sit-ups',
-                              style: textActivityLabel.copyWith(
-                                  fontWeight: FontWeight.w400)),
-                          Text('${0}', style: textActivityCounter),
-                        ])),
-                Container(
-                    margin: EdgeInsets.only(top: 10),
-                    child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        mainAxisSize: MainAxisSize.max,
-                        children: [
-                          Text('Push-ups',
-                              style: textActivityLabel.copyWith(
-                                  fontWeight: FontWeight.w400)),
-                          Text('${0}', style: textActivityCounter),
-                        ])),
-                Container(
-                    margin: EdgeInsets.only(top: 10),
-                    child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        mainAxisSize: MainAxisSize.max,
-                        children: [
-                          Text('Pull-ups',
-                              style: textActivityLabel.copyWith(
-                                  fontWeight: FontWeight.w400)),
-                          Text('${0}', style: textActivityCounter),
-                        ])),
-                Container(
-                    margin: EdgeInsets.only(top: 10),
-                    child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        mainAxisSize: MainAxisSize.max,
-                        children: [
-                          Text('Squats',
-                              style: textActivityLabel.copyWith(
-                                  fontWeight: FontWeight.w400)),
-                          Text('${0}', style: textActivityCounter),
-                        ])),
-                Container(
-                    margin: EdgeInsets.only(top: 10),
-                    child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        mainAxisSize: MainAxisSize.max,
-                        children: [
-                          Text('Burpees',
-                              style: textActivityLabel.copyWith(
-                                  fontWeight: FontWeight.w400)),
-                          Text('${0}', style: textActivityCounter),
-                        ])),
-              ]),
+        Expanded(
+          child: Container(
+            width: 200,
+            child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisSize: MainAxisSize.max,
+                children: <Widget>[
+                  Container(
+                      margin: EdgeInsets.only(top: 20),
+                      child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          mainAxisSize: MainAxisSize.max,
+                          children: [
+                            Text('Sit-ups',
+                                style: textActivityLabel.copyWith(
+                                    fontWeight: FontWeight.w400)),
+                            Text('${0}', style: textActivityCounter),
+                          ])),
+                  Container(
+                      margin: EdgeInsets.only(top: 20),
+                      child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          mainAxisSize: MainAxisSize.max,
+                          children: [
+                            Text('Push-ups',
+                                style: textActivityLabel.copyWith(
+                                    fontWeight: FontWeight.w400)),
+                            Text('${0}', style: textActivityCounter),
+                          ])),
+                  Container(
+                      margin: EdgeInsets.only(top: 20),
+                      child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          mainAxisSize: MainAxisSize.max,
+                          children: [
+                            Text('Pull-ups',
+                                style: textActivityLabel.copyWith(
+                                    fontWeight: FontWeight.w400)),
+                            Text('${0}', style: textActivityCounter),
+                          ])),
+                  Container(
+                      margin: EdgeInsets.only(top: 20),
+                      child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          mainAxisSize: MainAxisSize.max,
+                          children: [
+                            Text('Squats',
+                                style: textActivityLabel.copyWith(
+                                    fontWeight: FontWeight.w400)),
+                            Text('${0}', style: textActivityCounter),
+                          ])),
+//                Container(
+//                    margin: EdgeInsets.only(top: 20),
+//                    child: Row(
+//                        crossAxisAlignment: CrossAxisAlignment.center,
+//                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+//                        mainAxisSize: MainAxisSize.max,
+//                        children: [
+//                          Text('Burpees',
+//                              style: textActivityLabel.copyWith(
+//                                  fontWeight: FontWeight.w400)),
+//                          Text('${0}', style: textActivityCounter),
+//                        ])),
+                ]),
+          ),
         )
       ]),
     );
