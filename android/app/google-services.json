@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "473226075863",
+    "firebase_url": "https://oneup-workout-tracker.firebaseio.com",
+    "project_id": "oneup-workout-tracker",
+    "storage_bucket": "oneup-workout-tracker.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:473226075863:android:536a7c8d8000f0e5051a92",
+        "android_client_info": {
+          "package_name": "com.aethmos.one_up"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "473226075863-1giljblftth7k7nknnm397l86q2mokg4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.aethmos.one_up",
+            "certificate_hash": "8d0e557e857037d64a242d498725dbe757d81490"
+          }
+        },
+        {
+          "client_id": "473226075863-053bdqmh4a9fa0dqbsjn5lkgf5u9h9kh.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAoqwAGMUuo6FCNGqxjY_9Q3l8xOUSNVvc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "473226075863-053bdqmh4a9fa0dqbsjn5lkgf5u9h9kh.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

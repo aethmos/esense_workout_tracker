@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'dart:ui';
 
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:esense_flutter/esense.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:intl/intl.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 
 final colorBg = Color(0xFFEAEAEA);
@@ -114,21 +116,6 @@ final elevationShadowExtraLight = [
   ),
 ];
 
-final monthShortLabels = Map.from({
-  1: 'JAN',
-  2: 'FEB',
-  3: 'MAR',
-  4: 'APR',
-  5: 'MAY',
-  6: 'JUN',
-  7: 'JUL',
-  8: 'AUG',
-  9: 'SEP',
-  10: 'OCT',
-  11: 'NOV',
-  12: 'DEC',
-});
-
 class SensorDataDisplay extends StatelessWidget {
   final label;
   final value;
@@ -154,23 +141,92 @@ class SensorDataDisplay extends StatelessWidget {
   }
 }
 
-class SummaryData {
-  int id;
+final humanReadable = DateFormat('yyyy-MM-dd');
+
+class Summary {
+  static String collectionName = 'summaries';
+  static Set<String> ids = {};
+
+  static int get totalCount => ids.length;
+
+  String id;
   DateTime date;
   Map<String, int> counters;
 
-  SummaryData(this.id, this.date, this.counters) {
-    if (this.date == null) {
-      this.date = DateTime.now();
+  static get collection => Firestore.instance.collection(collectionName);
+
+  factory Summary.fromDocument(DocumentSnapshot document) {
+    return Summary(
+        document.documentID,
+        DateTime.fromMillisecondsSinceEpoch(document['date'].seconds * 1000),
+        Map.from(document['counters']));
+  }
+
+  factory Summary.create() {
+    return Summary(null, DateTime.now(), {
+      'Sit-ups': 0,
+      'Push-ups': 0,
+      'Pull-ups': 0,
+      'Squats': 0,
+    });
+  }
+
+  Summary(this.id, this.date, this.counters) {
+    if (!ids.contains(this.id)) {
+      ids.add(this.id);
     }
-    if (this.counters == null) {
-      this.counters = {
-        'Sit-ups': 0,
-        'Push-ups': 0,
-        'Pull-ups': 0,
-        'Squats': 0,
-      };
+  }
+
+  Future<Summary> add() async {
+    DocumentReference docRef = await Firestore.instance
+        .collection(collectionName)
+        .add({'date': this.date, 'counters': this.counters});
+    this.id = docRef.documentID;
+    return this;
+  }
+
+  Future<Summary> pull() async {
+    DocumentSnapshot docRef = await Firestore.instance
+        .collection(collectionName)
+        .document(this.id)
+        .get();
+    return Summary.fromDocument(docRef);
+  }
+
+  Future<Summary> submit() async {
+    if (this.id == null) {
+      this.add();
     }
+    await Firestore.instance
+        .collection(collectionName)
+        .document(this.id)
+        .setData({
+      'date': this.date.millisecondsSinceEpoch,
+      'counters': this.counters
+    }, merge: true);
+    return this;
+  }
+
+  Summary reset() {
+    this.counters.keys.map((key) => this.counters[key] = 0);
+    return this;
+  }
+
+  Summary increment(String label) {
+    this.counters[label] += 1;
+    return this;
+  }
+
+  Summary decrement(String label) {
+    this.counters[label] -= 1;
+    return this;
+  }
+
+  bool get isFromToday {
+    final today = DateTime.now();
+    return (this.date.year == today.year &&
+        this.date.month == today.month &&
+        this.date.day == today.day);
   }
 }
 
@@ -194,27 +250,41 @@ class _MyAppState extends State<MyApp> {
   String lastStatus = '';
   bool sessionInProgress = false;
   bool tryingToConnect = false;
-  List<SummaryData> _summaries = new List();
+  List<Summary> _summaries = new List();
   PageController _carouselController;
-
-  get darkTheme => ThemeData(
-        brightness: Brightness.dark,
-        primaryColorDark: Colors.red,
-        accentColor: Colors.red,
-//      floatingActionButtonTheme: FloatingActionButtonThemeData(
-//          backgroundColor: Colors.deepOrange
-//      )
-      );
+  Summary _todaysSummary;
 
   @override
   void initState() {
     _initSummaries();
-    _carouselController = PageController(
-        viewportFraction: (300 / 370),
-        initialPage: _summaries.length,  // TODO: remove along with _connectionSummary
-        keepPage: true);
     _connectToESense();
     super.initState();
+  }
+
+  void _initSummaries() {
+    Firestore.instance
+        .collection('summaries')
+        .snapshots()
+        .listen((QuerySnapshot snapshot) {
+      _summaries = snapshot.documents.map((DocumentSnapshot document) {
+        var summary = new Summary.fromDocument(document);
+        print(summary.date);
+        return summary;
+      }).toList();
+      // add an empty summary for today if there is none
+      if (!_summaries[_summaries.length - 1].isFromToday) {
+        _carouselController = PageController(
+            initialPage: _summaries.length,
+            keepPage: true,
+            viewportFraction: 300 / 370);
+        Summary.create().add();
+      } else {
+        _carouselController = PageController(
+            initialPage: _summaries.length - 1,
+            keepPage: true,
+            viewportFraction: 300 / 370);
+      }
+    });
   }
 
   @override
@@ -295,6 +365,23 @@ class _MyAppState extends State<MyApp> {
     _getESenseProperties();
   }
 
+//  void _startListenToSensorEvents() async {
+//    // subscribe to sensor event from the eSense device
+//    subscription = ESenseManager.sensorEvents.listen((event) {
+//      print('SENSOR event: $event');
+//      setState(() {
+//        String summary = '';
+//        summary += '\nindex: ${event.packetIndex}';
+//        summary += '\ntimestamp: ${event.timestamp}';
+//        summary += '\naccel: ${event.accel}';
+//        summary += '\ngyro: ${event.gyro}';
+//        _event = summary;
+//      });
+//    });
+//    setState(() {
+//      sampling = true;
+//    });
+
   void _getESenseProperties() async {
     Timer.periodic(Duration(seconds: 10),
         (timer) async => await ESenseManager.getBatteryVoltage());
@@ -316,22 +403,6 @@ class _MyAppState extends State<MyApp> {
 
   StreamSubscription subscription;
 
-//  void _startListenToSensorEvents() async {
-//    // subscribe to sensor event from the eSense device
-//    subscription = ESenseManager.sensorEvents.listen((event) {
-//      print('SENSOR event: $event');
-//      setState(() {
-//        String summary = '';
-//        summary += '\nindex: ${event.packetIndex}';
-//        summary += '\ntimestamp: ${event.timestamp}';
-//        summary += '\naccel: ${event.accel}';
-//        summary += '\ngyro: ${event.gyro}';
-//        _event = summary;
-//      });
-//    });
-//    setState(() {
-//      sampling = true;
-//    });
 //  }
 
   void _pauseListenToSensorEvents() async {
@@ -355,7 +426,6 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData.light(),
-      darkTheme: darkTheme,
       themeMode: ThemeMode.light,
       title: '1up',
       home: Scaffold(
@@ -365,7 +435,33 @@ class _MyAppState extends State<MyApp> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
             _headerPanel(),
-            _snappyCarousel([..._summaries.map((data) => SummaryCard(data)).toList(), _connectionSummary()]),
+            StreamBuilder(
+                stream: Summary.collection.snapshots(),
+                builder: (BuildContext context,
+                    AsyncSnapshot<QuerySnapshot> snapshot) {
+                  if (snapshot.hasError)
+                    return new Text('Error: ${snapshot.error}');
+                  switch (snapshot.connectionState) {
+                    case ConnectionState.waiting:
+                      return new Text('Loading...');
+                    default:
+                      _summaries = snapshot.data.documents
+                          .map((DocumentSnapshot document) {
+                        var summary = Summary.fromDocument(document);
+                        return summary;
+                      }).toList();
+                      return _snappyCarousel([
+                        ..._summaries.map(
+                            (data) {
+                              if (data.isFromToday) {
+                                _todaysSummary = data;
+                              }
+                              return SummaryCard(data, _carouselController);
+                            }),
+                        _connectionSummary()
+                      ]);
+                  }
+                }),
             _actionsPanel(),
           ],
         ),
@@ -382,7 +478,7 @@ class _MyAppState extends State<MyApp> {
           boxShadow: elevationShadow,
           borderRadius: borderRadius,
         ),
-        margin: EdgeInsets.only(top: 40),
+        margin: EdgeInsets.only(top: 60),
         child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -440,21 +536,26 @@ class _MyAppState extends State<MyApp> {
                               : [],
                     ))
               ]),
-              Container(
-                  height: 60,
-                  width: 60,
-                  decoration: BoxDecoration(
-                    color: colorBg,
-                    boxShadow: elevationShadowExtraLight,
-                    borderRadius: borderRadius,
-                  ),
-                  child: Icon(
-                    (ESenseManager.connected)
-                        ? Icons.delete_outline
-                        : Icons.bluetooth_searching,
-                    color: textHeading.color,
-                    size: 25,
-                  ))
+              GestureDetector(
+                onTap: () => ESenseManager.connected
+                    ? ESenseManager.disconnect()
+                    : _connectToESense(),
+                child: Container(
+                    height: 60,
+                    width: 60,
+                    decoration: BoxDecoration(
+                      color: colorBg,
+                      boxShadow: elevationShadowExtraLight,
+                      borderRadius: borderRadius,
+                    ),
+                    child: Icon(
+                      (ESenseManager.connected)
+                          ? Icons.delete_outline
+                          : Icons.bluetooth_searching,
+                      color: textHeading.color,
+                      size: 25,
+                    )),
+              )
             ]));
   }
 
@@ -464,10 +565,6 @@ class _MyAppState extends State<MyApp> {
         width: 300,
         decoration: BoxDecoration(
           color: colorBg,
-          border: Border.all(
-            width: 1.00,
-            color: colorAccentBorder,
-          ),
           boxShadow: elevationShadow,
           borderRadius: borderRadius,
         ),
@@ -503,7 +600,6 @@ class _MyAppState extends State<MyApp> {
         ]));
   }
 
-
   Widget _snappyCarousel(List<Widget> items) {
     return Expanded(
         flex: 3,
@@ -527,7 +623,6 @@ class _MyAppState extends State<MyApp> {
         borderRadius: borderRadius,
       ),
       margin: EdgeInsets.only(bottom: 40),
-//                    shape: Border.all(color: Colors.red, width: 1),
       child: (ESenseManager.connected)
           ? Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -542,86 +637,74 @@ class _MyAppState extends State<MyApp> {
                             boxShadow: elevationShadowLight,
                             borderRadius: borderRadius,
                           ),
-                          child: Center(
-                            child:
-                                Icon(Icons.check, color: colorFgBold, size: 60),
+                          child: GestureDetector(
+                            onTap: () => _finishWorkout(),
+                            child: Center(
+                              child:
+                                  Icon(Icons.check, color: colorFgBold, size: 60),
+                            ),
                           )),
                     ]
                   : <Widget>[
-                      Icon(Icons.settings_backup_restore,
-                          color: colorFgBold, size: 30),
-                      Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: colorBg,
-                            boxShadow: elevationShadowLight,
-                            borderRadius: borderRadius,
-                          ),
-                          child: Center(
-                              child: new SvgPicture.asset(
-                            'assets/sport.svg',
-                            color: colorFgBold,
-                            height: 45,
-                            width: 45,
-                          ))),
-                      Icon(Icons.share, color: colorFgBold, size: 30),
+                      GestureDetector(
+                        onTap: () => _todaysSummary.reset().submit(),
+                        child: Icon(Icons.settings_backup_restore,
+                            color: colorFgBold, size: 30),
+                      ),
+                      GestureDetector(
+                        onTap: () => _startWorkout(),
+                        child: Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: colorBg,
+                              boxShadow: elevationShadowLight,
+                              borderRadius: borderRadius,
+                            ),
+                            child: Center(
+                                child: new SvgPicture.asset(
+                              'assets/sport.svg',
+                              color: colorFgBold,
+                              height: 45,
+                              width: 45,
+                            ))),
+                      ),
+                      Icon(Icons.edit, color: colorFgBold, size: 30),
                     ],
             )
-          : Center(
-              child: Text(
-              'Connect',
-              style: textCalendarDayToday,
-            )),
+          : GestureDetector(
+              onTap: () => _connectToESense(),
+              child: Center(
+                  child: Text(
+                'Connect',
+                style: textCalendarDayToday,
+              )),
+            ),
     );
   }
 
-  void _initSummaries() {
-    _summaries = [
-      SummaryData(1, DateTime(2020, 2, 2), {
-        'Sit-ups': 23,
-        'Push-ups': 15,
-        'Pull-ups': 9,
-        'Squats': 18,
-      }),
-      SummaryData(2, DateTime(2020, 2, 4), {
-        'Sit-ups': 23,
-        'Push-ups': 15,
-        'Pull-ups': 9,
-        'Squats': 18,
-      }),
-      SummaryData(3, DateTime(2020, 2, 5), {
-        'Sit-ups': 23,
-        'Push-ups': 15,
-        'Pull-ups': 9,
-        'Squats': 18,
-      }),
-      SummaryData(4, DateTime(2020, 2, 10), {
-        'Sit-ups': 23,
-        'Push-ups': 15,
-        'Pull-ups': 9,
-        'Squats': 18,
-      }),
-    ];
-    final today = DateTime.now();
-    if (_summaries.last.date.year == today.year ||
-        _summaries.last.date.month == today.month ||
-        _summaries.last.date.day == today.day) {
-      _summaries.add(SummaryData(_summaries.last.id + 1, null, null));
-    }
+  void _startWorkout() {
+    // TODO start listening to sensor data + classify for activity
+  }
+
+  void _finishWorkout() {
+    _todaysSummary.submit();
+    // TODO stop listening to sensor data
   }
 }
 
 class SummaryCard extends StatefulWidget {
-  final SummaryData summary;
-  const SummaryCard(this.summary);
+  final Summary summary;
+  final PageController controller;
+
+  const SummaryCard(this.summary, this.controller);
 
   @override
   _SummaryCardState createState() => _SummaryCardState();
 }
 
 class _SummaryCardState extends State<SummaryCard> {
-  SummaryData _summary;
+  Summary _summary;
 
   @override
   void initState() {
@@ -633,13 +716,19 @@ class _SummaryCardState extends State<SummaryCard> {
 
   void resetCounters() {
     setState(() {
-      _summary.counters.keys.map((String key) => _summary.counters[key] = 0);
+      _summary = widget.summary.reset();
     });
   }
 
   void incrementActivity(String label) {
     setState(() {
-      _summary.counters[label] += 1;
+      _summary = widget.summary.increment(label);
+    });
+  }
+
+  void decrementActivity(String label) {
+    setState(() {
+      _summary = widget.summary.decrement(label);
     });
   }
 
@@ -662,12 +751,12 @@ class _SummaryCardState extends State<SummaryCard> {
             children: <Widget>[
 //              Icon(Icons.insert_chart,
 //                  color: colorFgBold, size: textHeading.fontSize * 1.5),
-              Container(width: 5),
+              SizedBox(width: 5),
               Text(
-                '${_summary.id} | Overview',
+                'Overview',
                 style: textHeading,
               ),
-              Container(width: 20),
+              SizedBox(width: 20),
               _calendarTile(_summary.date)
             ]),
         Expanded(
@@ -676,9 +765,11 @@ class _SummaryCardState extends State<SummaryCard> {
             child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
-                children: _summary.counters.keys.map((String key) {
-                  return _counterDisplay(key, _summary.counters[key]);
-                }).toList()),
+                children: _summary.counters.entries
+                        .map((entry) =>
+                            _counterDisplay(entry.key.toString(), entry.value))
+                        .toList() ??
+                    []),
           ),
         )
       ]),
@@ -689,27 +780,30 @@ class _SummaryCardState extends State<SummaryCard> {
     if (date == null) {
       date = DateTime.now();
     }
+    var month = DateFormat('MMM');
+    var day = DateFormat('dd');
 
     var today = DateTime.now();
     bool isToday = today.day == date.day && today.month == date.month;
 
-    void goToToday() {
-//      _carouselController.animateToPage(items.length - 1, duration: Duration(milliseconds: 300), curve: ElasticInOutCurve());
-    }
-
-    return Container(
-        height: 60,
-        width: 60,
-        decoration: BoxDecoration(
-          color: colorBg,
-          boxShadow: elevationShadowLight,
-          borderRadius: borderRadius,
-        ),
-        child: Column(children: <Widget>[
-          Text(date.day > 9 ? '${date.day}' : '0${date.day}',
-              style: isToday ? textCalendarDayToday : textCalendarDay),
-          Text(monthShortLabels[date.month], style: textCalendarMonth)
-        ]));
+    return GestureDetector(
+      onTap: () => widget.controller.animateToPage(Summary.totalCount - 1,
+          duration: Duration(milliseconds: 1000),
+          curve: const ElasticOutCurve(1)),
+      child: Container(
+          height: 60,
+          width: 60,
+          decoration: BoxDecoration(
+            color: colorBg,
+            boxShadow: elevationShadowLight,
+            borderRadius: borderRadius,
+          ),
+          child: Column(children: <Widget>[
+            Text(day.format(date),
+                style: isToday ? textCalendarDayToday : textCalendarDay),
+            Text(month.format(date).toUpperCase(), style: textCalendarMonth)
+          ])),
+    );
   }
 
   Widget _counterDisplay(String label, int value) {

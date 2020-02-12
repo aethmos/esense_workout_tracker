@@ -26,6 +26,8 @@ dependencies:
   esense_flutter: ^0.2.0+2
   speech_to_text: ^0.8.0
   flutter_svg:
+  intl:
+  cloud_firestore:
 
 dev_dependencies:
   flutter_test:
