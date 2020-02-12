@@ -28,6 +28,7 @@ dependencies:
   flutter_svg:
   intl:
   cloud_firestore:
+  animator:
 
 dev_dependencies:
   flutter_test:

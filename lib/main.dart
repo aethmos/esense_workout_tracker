@@ -132,14 +132,12 @@ class _MyAppState extends State<MyApp> {
   List<Summary> _summaries = new List();
   PageController _carouselController;
   Summary _todaysSummary;
-  bool _todaysSummaryInView = true;
+
+//  bool _todaysSummaryInView = true;
   bool _workoutInProgress = false;
 
   @override
   void initState() {
-    _tryingToConnect = false;
-    _todaysSummaryInView = true;
-    _workoutInProgress = false;
     _initSummaries();
     _connectToESense();
     super.initState();
@@ -150,30 +148,21 @@ class _MyAppState extends State<MyApp> {
         .collection('summaries')
         .snapshots()
         .listen((QuerySnapshot snapshot) {
-      _summaries = snapshot.documents.map((DocumentSnapshot document) {
-        var summary = new Summary.fromDocument(document);
-        print(summary.date);
-        return summary;
-      }).toList();
+      setState(() {
+        _summaries = snapshot.documents.map((DocumentSnapshot document) {
+          var summary = new Summary.fromDocument(document);
+          print(summary.date);
+          return summary;
+        }).toList();
+      });
       // add an empty summary for today if there is none
       if (!_summaries[_summaries.length - 1].isFromToday) {
-        _carouselController = PageController(
-            initialPage: _summaries.length,
-            keepPage: true,
-            viewportFraction: 300 / 370);
         Summary.create().add();
-      } else {
-        _carouselController = PageController(
-            initialPage: _summaries.length - 1,
-            keepPage: true,
-            viewportFraction: 300 / 370);
       }
-      _carouselController.addListener(() {
-        setState(() {
-          _todaysSummaryInView =
-              _carouselController.page.toInt() == Summary.totalCount - 1;
-        });
-      });
+      _carouselController = PageController(
+          initialPage: Summary.totalCount - 1,
+          keepPage: false,
+          viewportFraction: 300 / 370);
     });
   }
 
@@ -244,8 +233,7 @@ class _MyAppState extends State<MyApp> {
             if ((event as ButtonEventChanged).pressed) {
               _button = 'pressed';
               _workoutInProgress ? _finishWorkout() : _startWorkout();
-            }
-            else {
+            } else {
               _button = 'not pressed';
             }
             break;
@@ -281,7 +269,7 @@ class _MyAppState extends State<MyApp> {
 
   void _getESenseProperties() async {
     Timer.periodic(Duration(seconds: 10),
-            (timer) async => await ESenseManager.getBatteryVoltage());
+        (timer) async => await ESenseManager.getBatteryVoltage());
 
     // wait 2, 3, 4, 5, ... secs before getting the name, offset, etc.
     // it seems like the eSense BTLE interface does NOT like to get called
@@ -289,13 +277,13 @@ class _MyAppState extends State<MyApp> {
     Timer(
         Duration(seconds: 2), () async => await ESenseManager.getDeviceName());
     Timer(Duration(seconds: 3),
-            () async => await ESenseManager.getAccelerometerOffset());
+        () async => await ESenseManager.getAccelerometerOffset());
     Timer(
         Duration(seconds: 4),
-            () async =>
-        await ESenseManager.getAdvertisementAndConnectionInterval());
+        () async =>
+            await ESenseManager.getAdvertisementAndConnectionInterval());
     Timer(Duration(seconds: 5),
-            () async => await ESenseManager.getSensorConfig());
+        () async => await ESenseManager.getSensorConfig());
   }
 
   StreamSubscription subscription;
@@ -383,58 +371,57 @@ class _MyAppState extends State<MyApp> {
                 (ESenseManager.connected)
                     ? Text('eSense-1585', style: textHeading)
                     : Container(
-                    width: 165,
-                    padding: EdgeInsets.only(left: 10),
-                    decoration: BoxDecoration(
-                        color: colorBg,
-                        boxShadow: elevationShadowLight,
-                        borderRadius: borderRadius),
-                    child: TextFormField(
-                      style: textHeading.copyWith(color: colorFgLight),
-                      autofocus: false,
-                      autocorrect: false,
-                      showCursor: true,
-                      cursorRadius: Radius.circular(3),
-                      textCapitalization: TextCapitalization.none,
-                      initialValue: 'eSense-0151',
-                      decoration: InputDecoration(
-                        focusedBorder: InputBorder.none,
-                        errorBorder: InputBorder.none,
-                        border: InputBorder.none,
-                      ),
-                      onFieldSubmitted: (String value) {
-                        _connectToESense(eSenseName: value);
-                      },
-                    )),
+                        width: 165,
+                        padding: EdgeInsets.only(left: 10),
+                        decoration: BoxDecoration(
+                            color: colorBg,
+                            boxShadow: elevationShadowLight,
+                            borderRadius: borderRadius),
+                        child: TextFormField(
+                          style: textHeading.copyWith(color: colorFgLight),
+                          autofocus: false,
+                          autocorrect: false,
+                          showCursor: true,
+                          cursorRadius: Radius.circular(3),
+                          textCapitalization: TextCapitalization.none,
+                          initialValue: 'eSense-0151',
+                          decoration: InputDecoration(
+                            focusedBorder: InputBorder.none,
+                            errorBorder: InputBorder.none,
+                            border: InputBorder.none,
+                          ),
+                          onFieldSubmitted: (String value) {
+                            _connectToESense(eSenseName: value);
+                          },
+                        )),
                 Container(
                     margin: EdgeInsets.only(top: 5),
                     child: Row(
                       children: (ESenseManager.connected)
                           ? [
-                        Icon(Icons.check,
-                            color: colorGood,
-                            size: textSubheading.fontSize),
-                        Text(
-                          'Connected',
-                          style: textSubheading,
-                        )
-                      ]
+                              Icon(Icons.check,
+                                  color: colorGood,
+                                  size: textSubheading.fontSize),
+                              Text(
+                                'Connected',
+                                style: textSubheading,
+                              )
+                            ]
                           : _tryingToConnect
-                          ? [
-                        Icon(Icons.timelapse,
-                            color: colorNeutral,
-                            size: textSubheading.fontSize),
-                        Text(
-                          'Connecting...',
-                          style: textSubheading,
-                        )
-                      ]
-                          : [],
+                              ? [
+                                  Icon(Icons.timelapse,
+                                      color: colorNeutral,
+                                      size: textSubheading.fontSize),
+                                  Text(
+                                    'Connecting...',
+                                    style: textSubheading,
+                                  )
+                                ]
+                              : [],
                     ))
               ]),
               GestureDetector(
-                onTap: () =>
-                ESenseManager.connected
+                onTap: () => ESenseManager.connected
                     ? ESenseManager.disconnect()
                     : _connectToESense(),
                 child: Container(
@@ -498,12 +485,15 @@ class _MyAppState extends State<MyApp> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: <Widget>[
-            Text('$label',
-                style: textHeading.copyWith(fontSize: 22)),
+            Text('$label', style: textHeading.copyWith(fontSize: 22)),
             Container(
               height: 5,
             ),
-            Text('$value', overflow: TextOverflow.clip, style: textHeading.copyWith(fontSize: 16),)
+            Text(
+              '$value',
+              overflow: TextOverflow.clip,
+              style: textHeading.copyWith(fontSize: 16),
+            )
           ],
         ));
   }
@@ -531,86 +521,86 @@ class _MyAppState extends State<MyApp> {
         borderRadius: borderRadius,
       ),
       margin: EdgeInsets.only(bottom: 40),
-      transform: Matrix4.translationValues(0, (!ESenseManager.connected && !_todaysSummaryInView) ? 300 : 0, 0),
-      child: (!ESenseManager.connected)
+      child: (ESenseManager.connected)
           ? Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: _workoutInProgress
-            ? [
-          Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: colorBg,
-                boxShadow: elevationShadowLight,
-                borderRadius: borderRadius,
-              ),
-              child: GestureDetector(
-                onTap: () => _finishWorkout(),
-                child: Center(
-                  child: Icon(Icons.check,
-                      color: colorFgBold, size: 60),
-                ),
-              )),
-        ]
-            : <Widget>[
-          Expanded(
-            flex: 1,
-            child: GestureDetector(
-              onTap: () => _todaysSummary.reset().submit(),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Container(
-                    transform: Matrix4.translationValues(10, 1, 0),
-                    child: Icon(Icons.exposure_zero,
-                        color: colorFgBold, size: 30),
-                  ),
-                  Text('.', style: textHeading),
-                  Container(
-                    transform: Matrix4.translationValues(-11, 1, 0),
-                    child: Icon(Icons.exposure_zero,
-                        color: colorFgBold, size: 30),
-                  )
-                ],
-              ),
-            ),
-          ),
-          GestureDetector(
-            onTap: () => _startWorkout(),
-            child: Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: colorBg,
-                  boxShadow: elevationShadowLight,
-                  borderRadius: borderRadius,
-                ),
-                child: Center(
-                    child: new SvgPicture.asset(
-                      'assets/sport.svg',
-                      color: colorFgBold,
-                      height: 45,
-                      width: 45,
-                    ))),
-          ),
-          Expanded(
-              flex: 1,
-              child:
-              GestureDetector(onTap: null,
-                  child: Icon(Icons.edit, color: colorFgBold, size: 30))),
-        ],
-      )
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: _workoutInProgress
+                  ? [
+                      Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: colorBg,
+                            boxShadow: elevationShadowLight,
+                            borderRadius: borderRadius,
+                          ),
+                          child: GestureDetector(
+                            onTap: () => _finishWorkout(),
+                            child: Center(
+                              child: Icon(Icons.check,
+                                  color: colorFgBold, size: 60),
+                            ),
+                          )),
+                    ]
+                  : <Widget>[
+                      Expanded(
+                        flex: 1,
+                        child: GestureDetector(
+                          onTap: () => _todaysSummary.reset().submit(),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: <Widget>[
+                              Container(
+                                transform: Matrix4.translationValues(10, 1, 0),
+                                child: Icon(Icons.exposure_zero,
+                                    color: colorFgBold, size: 30),
+                              ),
+                              Text('.', style: textHeading),
+                              Container(
+                                transform: Matrix4.translationValues(-11, 1, 0),
+                                child: Icon(Icons.exposure_zero,
+                                    color: colorFgBold, size: 30),
+                              )
+                            ],
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () => _startWorkout(),
+                        child: Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: colorBg,
+                              boxShadow: elevationShadowLight,
+                              borderRadius: borderRadius,
+                            ),
+                            child: Center(
+                                child: new SvgPicture.asset(
+                              'assets/sport.svg',
+                              color: colorFgBold,
+                              height: 45,
+                              width: 45,
+                            ))),
+                      ),
+                      Expanded(
+                          flex: 1,
+                          child: GestureDetector(
+                              onTap: null,
+                              child: Icon(Icons.edit,
+                                  color: colorFgBold, size: 30))),
+                    ],
+            )
           : GestureDetector(
-        onTap: () => _connectToESense(),
-        child: Center(
-            child: Text(
-              'Connect',
-              style: textCalendarDayToday,
-            )),
-      ),
+              onTap: () => _connectToESense(),
+              child: Center(
+                  child: Text(
+                'Connect',
+                style: textCalendarDayToday,
+              )),
+            ),
     );
   }
 
@@ -711,9 +701,9 @@ class _SummaryCardState extends State<SummaryCard> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: _summary.counters.entries
-                    .map((entry) =>
-                    _counterDisplay(entry.key.toString(), entry.value))
-                    .toList() ??
+                        .map((entry) =>
+                            _counterDisplay(entry.key.toString(), entry.value))
+                        .toList() ??
                     []),
           ),
         )
@@ -732,10 +722,9 @@ class _SummaryCardState extends State<SummaryCard> {
     bool isToday = today.day == date.day && today.month == date.month;
 
     return GestureDetector(
-      onTap: () =>
-          widget.controller.animateToPage(Summary.totalCount - 1,
-              duration: Duration(milliseconds: 1000),
-              curve: const ElasticOutCurve(1)),
+      onTap: () => widget.controller.animateToPage(Summary.totalCount - 1,
+          duration: Duration(milliseconds: 1000),
+          curve: const ElasticOutCurve(1)),
       child: Container(
           height: 60,
           width: 60,
@@ -762,7 +751,7 @@ class _SummaryCardState extends State<SummaryCard> {
             children: [
               Text('$label',
                   style:
-                  textActivityLabel.copyWith(fontWeight: FontWeight.w400)),
+                      textActivityLabel.copyWith(fontWeight: FontWeight.w400)),
               Text('$value', style: textActivityCounter),
             ]));
   }
