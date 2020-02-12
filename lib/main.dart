@@ -1,147 +1,16 @@
 import 'dart:async';
+import 'dart:math';
 import 'dart:ui';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:one_up/constants.dart';
 import 'package:esense_flutter/esense.dart';
 import 'package:flutter/cupertino.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:intl/intl.dart';
 import 'package:speech_to_text/speech_to_text.dart';
-
-final colorBg = Color(0xFFEAEAEA);
-
-final colorFgLight = Color(0xFF707070);
-final colorFg = Color(0xFF1E1E1E);
-final colorFgBold = Color(0xFF1A1A1A);
-
-final colorAccent = Color(0xFF8E00CC);
-
-final colorGradientBegin = Color(0xFFB143E0);
-final colorGradientEnd = Color(0xFFF6009B);
-
-final colorAccentBorder = Color(0xFF8E00CC).withOpacity(0.5);
-final colorShadowDark = Color(0xFF000000).withOpacity(0.16);
-final colorShadowLight = Color(0xFFFFFFFF).withOpacity(0.8);
-
-final colorGood = Color(0xFF19C530);
-final colorNeutral = Color(0xFFE6A100);
-final colorDanger = Color(0xFFE1154B);
-
-final textCalendarDayToday = TextStyle(
-  fontFamily: "Jost*",
-  fontWeight: FontWeight.w500,
-  fontSize: 35,
-  color: colorAccent,
-);
-final textCalendarDay = TextStyle(
-  fontFamily: "Jost*",
-  fontWeight: FontWeight.w500,
-  fontSize: 35,
-  color: colorFgBold,
-);
-final textCalendarMonth = TextStyle(
-  fontFamily: "Jost*",
-  fontWeight: FontWeight.w300,
-  fontSize: 16,
-  color: colorFgLight,
-);
-
-final textActivityLabel = TextStyle(
-  fontFamily: "Jost*",
-  fontWeight: FontWeight.w500,
-  fontSize: 28,
-  color: colorFgBold,
-);
-final textActivityCounter = TextStyle(
-  fontFamily: "Jost*",
-  fontWeight: FontWeight.w500,
-  fontSize: 35,
-  color: colorAccent,
-);
-
-final textHeading = TextStyle(
-  fontFamily: "Jost*",
-  fontWeight: FontWeight.w300,
-  fontSize: 26,
-  color: colorFg,
-);
-final textSubheading = TextStyle(
-  fontFamily: "Jost*",
-  fontWeight: FontWeight.w300,
-  fontSize: 16,
-  color: colorFgLight,
-);
-
-final borderRadius = BorderRadius.circular(12.00);
-
-final elevationShadow = [
-  BoxShadow(
-    offset: Offset(-3.00, -3.00),
-    color: colorShadowLight,
-    blurRadius: 6,
-  ),
-  BoxShadow(
-    offset: Offset(3.00, 3.00),
-    color: colorShadowDark,
-    blurRadius: 6,
-  ),
-];
-
-final elevationShadowLight = [
-  BoxShadow(
-    offset: Offset(-2.00, -2.00),
-    color: colorShadowLight,
-    blurRadius: 2,
-  ),
-  BoxShadow(
-    offset: Offset(2.00, 2.00),
-    color: colorShadowDark,
-    blurRadius: 2,
-  ),
-];
-
-final elevationShadowExtraLight = [
-  BoxShadow(
-    offset: Offset(-1.00, -1.00),
-    color: colorShadowLight,
-    blurRadius: 1,
-  ),
-  BoxShadow(
-    offset: Offset(1.00, 1.00),
-    color: colorShadowDark,
-    blurRadius: 1,
-  ),
-];
-
-class SensorDataDisplay extends StatelessWidget {
-  final label;
-  final value;
-
-  const SensorDataDisplay({Key key, this.label, this.value}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-        padding: EdgeInsets.only(top: 15),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: <Widget>[
-            Text('$label',
-                style: TextStyle(
-                    fontSize: Theme.of(context).textTheme.title.fontSize)),
-            Container(
-              height: 5,
-            ),
-            Text('$value', overflow: TextOverflow.clip)
-          ],
-        ));
-  }
-}
-
-final humanReadable = DateFormat('yyyy-MM-dd');
 
 class Summary {
   static String collectionName = 'summaries';
@@ -230,6 +99,16 @@ class Summary {
   }
 }
 
+class SummaryCard extends StatefulWidget {
+  final Summary summary;
+  final PageController controller;
+
+  const SummaryCard(this.summary, this.controller);
+
+  @override
+  _SummaryCardState createState() => _SummaryCardState();
+}
+
 void main() => runApp(MyApp());
 
 class MyApp extends StatefulWidget {
@@ -238,7 +117,7 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  String _deviceName = 'Unknown';
+//  String _deviceName = 'Unknown';
   double _voltage = -1;
   String _deviceStatus = '';
   bool sampling = false;
@@ -248,14 +127,19 @@ class _MyAppState extends State<MyApp> {
   String lastWords = '';
   String lastError = '';
   String lastStatus = '';
-  bool sessionInProgress = false;
-  bool tryingToConnect = false;
+
+  bool _tryingToConnect = false;
   List<Summary> _summaries = new List();
   PageController _carouselController;
   Summary _todaysSummary;
+  bool _todaysSummaryInView = true;
+  bool _workoutInProgress = false;
 
   @override
   void initState() {
+    _tryingToConnect = false;
+    _todaysSummaryInView = true;
+    _workoutInProgress = false;
     _initSummaries();
     _connectToESense();
     super.initState();
@@ -284,6 +168,12 @@ class _MyAppState extends State<MyApp> {
             keepPage: true,
             viewportFraction: 300 / 370);
       }
+      _carouselController.addListener(() {
+        setState(() {
+          _todaysSummaryInView =
+              _carouselController.page.toInt() == Summary.totalCount - 1;
+        });
+      });
     });
   }
 
@@ -326,13 +216,16 @@ class _MyAppState extends State<MyApp> {
       });
     });
 
-    tryingToConnect = true;
+    setState(() {
+      _tryingToConnect = true;
+    });
+
     con = await ESenseManager.connect(eSenseName);
 
     setState(() {
       _deviceStatus = con ? 'connecting to $eSenseName' : 'connection failed';
+      _tryingToConnect = false;
     });
-    tryingToConnect = false;
   }
 
   void _listenToESenseEvents() async {
@@ -342,22 +235,26 @@ class _MyAppState extends State<MyApp> {
       setState(() {
         switch (event.runtimeType) {
           case DeviceNameRead:
-            _deviceName = (event as DeviceNameRead).deviceName;
+//            _deviceName = (event as DeviceNameRead).deviceName;
             break;
           case BatteryRead:
             _voltage = (event as BatteryRead).voltage;
             break;
           case ButtonEventChanged:
-            _button = (event as ButtonEventChanged).pressed
-                ? 'pressed'
-                : 'not pressed';
+            if ((event as ButtonEventChanged).pressed) {
+              _button = 'pressed';
+              _workoutInProgress ? _finishWorkout() : _startWorkout();
+            }
+            else {
+              _button = 'not pressed';
+            }
             break;
           case AccelerometerOffsetRead:
             break;
           case AdvertisementAndConnectionIntervalRead:
             break;
           case SensorConfigRead:
-            break;
+            print((event as SensorConfigRead).toString());
         }
       });
     });
@@ -384,7 +281,7 @@ class _MyAppState extends State<MyApp> {
 
   void _getESenseProperties() async {
     Timer.periodic(Duration(seconds: 10),
-        (timer) async => await ESenseManager.getBatteryVoltage());
+            (timer) async => await ESenseManager.getBatteryVoltage());
 
     // wait 2, 3, 4, 5, ... secs before getting the name, offset, etc.
     // it seems like the eSense BTLE interface does NOT like to get called
@@ -392,13 +289,13 @@ class _MyAppState extends State<MyApp> {
     Timer(
         Duration(seconds: 2), () async => await ESenseManager.getDeviceName());
     Timer(Duration(seconds: 3),
-        () async => await ESenseManager.getAccelerometerOffset());
+            () async => await ESenseManager.getAccelerometerOffset());
     Timer(
         Duration(seconds: 4),
-        () async =>
-            await ESenseManager.getAdvertisementAndConnectionInterval());
+            () async =>
+        await ESenseManager.getAdvertisementAndConnectionInterval());
     Timer(Duration(seconds: 5),
-        () async => await ESenseManager.getSensorConfig());
+            () async => await ESenseManager.getSensorConfig());
   }
 
   StreamSubscription subscription;
@@ -451,13 +348,12 @@ class _MyAppState extends State<MyApp> {
                         return summary;
                       }).toList();
                       return _snappyCarousel([
-                        ..._summaries.map(
-                            (data) {
-                              if (data.isFromToday) {
-                                _todaysSummary = data;
-                              }
-                              return SummaryCard(data, _carouselController);
-                            }),
+                        ..._summaries.map((data) {
+                          if (data.isFromToday) {
+                            _todaysSummary = data;
+                          }
+                          return SummaryCard(data, _carouselController);
+                        }),
                         _connectionSummary()
                       ]);
                   }
@@ -487,57 +383,58 @@ class _MyAppState extends State<MyApp> {
                 (ESenseManager.connected)
                     ? Text('eSense-1585', style: textHeading)
                     : Container(
-                        width: 165,
-                        padding: EdgeInsets.only(left: 10),
-                        decoration: BoxDecoration(
-                            color: colorBg,
-                            boxShadow: elevationShadowLight,
-                            borderRadius: borderRadius),
-                        child: TextFormField(
-                          style: textHeading.copyWith(color: colorFgLight),
-                          autofocus: false,
-                          autocorrect: false,
-                          showCursor: true,
-                          cursorRadius: Radius.circular(3),
-                          textCapitalization: TextCapitalization.none,
-                          initialValue: 'eSense-0151',
-                          decoration: InputDecoration(
-                            focusedBorder: InputBorder.none,
-                            errorBorder: InputBorder.none,
-                            border: InputBorder.none,
-                          ),
-                          onFieldSubmitted: (String value) {
-                            _connectToESense(eSenseName: value);
-                          },
-                        )),
+                    width: 165,
+                    padding: EdgeInsets.only(left: 10),
+                    decoration: BoxDecoration(
+                        color: colorBg,
+                        boxShadow: elevationShadowLight,
+                        borderRadius: borderRadius),
+                    child: TextFormField(
+                      style: textHeading.copyWith(color: colorFgLight),
+                      autofocus: false,
+                      autocorrect: false,
+                      showCursor: true,
+                      cursorRadius: Radius.circular(3),
+                      textCapitalization: TextCapitalization.none,
+                      initialValue: 'eSense-0151',
+                      decoration: InputDecoration(
+                        focusedBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        border: InputBorder.none,
+                      ),
+                      onFieldSubmitted: (String value) {
+                        _connectToESense(eSenseName: value);
+                      },
+                    )),
                 Container(
                     margin: EdgeInsets.only(top: 5),
                     child: Row(
                       children: (ESenseManager.connected)
                           ? [
-                              Icon(Icons.check,
-                                  color: colorGood,
-                                  size: textSubheading.fontSize),
-                              Text(
-                                'Connected',
-                                style: textSubheading,
-                              )
-                            ]
-                          : tryingToConnect
-                              ? [
-                                  Icon(Icons.timelapse,
-                                      color: colorNeutral,
-                                      size: textSubheading.fontSize),
-                                  Text(
-                                    'Connecting...',
-                                    style: textSubheading,
-                                  )
-                                ]
-                              : [],
+                        Icon(Icons.check,
+                            color: colorGood,
+                            size: textSubheading.fontSize),
+                        Text(
+                          'Connected',
+                          style: textSubheading,
+                        )
+                      ]
+                          : _tryingToConnect
+                          ? [
+                        Icon(Icons.timelapse,
+                            color: colorNeutral,
+                            size: textSubheading.fontSize),
+                        Text(
+                          'Connecting...',
+                          style: textSubheading,
+                        )
+                      ]
+                          : [],
                     ))
               ]),
               GestureDetector(
-                onTap: () => ESenseManager.connected
+                onTap: () =>
+                ESenseManager.connected
                     ? ESenseManager.disconnect()
                     : _connectToESense(),
                 child: Container(
@@ -571,33 +468,44 @@ class _MyAppState extends State<MyApp> {
         margin: EdgeInsets.all(20),
         padding: EdgeInsets.all(25),
         child: Column(children: <Widget>[
-          Icon(Icons.info_outline),
-          SensorDataDisplay(
-            label: 'Device Status:',
-            value: _deviceStatus,
+          Icon(Icons.network_check),
+          _sensorDataDisplay(
+            'Device Status:',
+            _deviceStatus,
           ),
-          SensorDataDisplay(
-            label: 'Device Name:',
-            value: _deviceName,
+          _sensorDataDisplay(
+            'Battery Level:',
+            '${(min(_voltage / 4000, 1) * 100).round()}%',
           ),
-          SensorDataDisplay(
-            label: 'Battery Level:',
-            value: _voltage,
+          _sensorDataDisplay(
+            'Button Pressed:',
+            _button,
           ),
-          SensorDataDisplay(
-            label: 'Button Pressed:',
-            value: _button,
+          _sensorDataDisplay(
+            'Event Type:',
+            _event,
           ),
-          SensorDataDisplay(
-            label: 'Event Type:',
-            value: _event,
-          ),
-          SensorDataDisplay(
-            label:
-                'Speech Input${speech.isListening ? ' - listening...' : ':'}',
-            value: lastWords,
+          _sensorDataDisplay(
+            'Speech Input${speech.isListening ? ' - listening...' : ':'}',
+            lastWords,
           )
         ]));
+  }
+
+  Widget _sensorDataDisplay(label, value) {
+    return Padding(
+        padding: EdgeInsets.only(top: 15),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: <Widget>[
+            Text('$label',
+                style: textHeading.copyWith(fontSize: 22)),
+            Container(
+              height: 5,
+            ),
+            Text('$value', overflow: TextOverflow.clip, style: textHeading.copyWith(fontSize: 16),)
+          ],
+        ));
   }
 
   Widget _snappyCarousel(List<Widget> items) {
@@ -623,84 +531,121 @@ class _MyAppState extends State<MyApp> {
         borderRadius: borderRadius,
       ),
       margin: EdgeInsets.only(bottom: 40),
-      child: (ESenseManager.connected)
+      transform: Matrix4.translationValues(0, (!ESenseManager.connected && !_todaysSummaryInView) ? 300 : 0, 0),
+      child: (!ESenseManager.connected)
           ? Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: sessionInProgress
-                  ? [
-                      Container(
-                          width: 60,
-                          height: 60,
-                          decoration: BoxDecoration(
-                            color: colorBg,
-                            boxShadow: elevationShadowLight,
-                            borderRadius: borderRadius,
-                          ),
-                          child: GestureDetector(
-                            onTap: () => _finishWorkout(),
-                            child: Center(
-                              child:
-                                  Icon(Icons.check, color: colorFgBold, size: 60),
-                            ),
-                          )),
-                    ]
-                  : <Widget>[
-                      GestureDetector(
-                        onTap: () => _todaysSummary.reset().submit(),
-                        child: Icon(Icons.settings_backup_restore,
-                            color: colorFgBold, size: 30),
-                      ),
-                      GestureDetector(
-                        onTap: () => _startWorkout(),
-                        child: Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              color: colorBg,
-                              boxShadow: elevationShadowLight,
-                              borderRadius: borderRadius,
-                            ),
-                            child: Center(
-                                child: new SvgPicture.asset(
-                              'assets/sport.svg',
-                              color: colorFgBold,
-                              height: 45,
-                              width: 45,
-                            ))),
-                      ),
-                      Icon(Icons.edit, color: colorFgBold, size: 30),
-                    ],
-            )
-          : GestureDetector(
-              onTap: () => _connectToESense(),
-              child: Center(
-                  child: Text(
-                'Connect',
-                style: textCalendarDayToday,
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: _workoutInProgress
+            ? [
+          Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: colorBg,
+                boxShadow: elevationShadowLight,
+                borderRadius: borderRadius,
+              ),
+              child: GestureDetector(
+                onTap: () => _finishWorkout(),
+                child: Center(
+                  child: Icon(Icons.check,
+                      color: colorFgBold, size: 60),
+                ),
               )),
+        ]
+            : <Widget>[
+          Expanded(
+            flex: 1,
+            child: GestureDetector(
+              onTap: () => _todaysSummary.reset().submit(),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Container(
+                    transform: Matrix4.translationValues(10, 1, 0),
+                    child: Icon(Icons.exposure_zero,
+                        color: colorFgBold, size: 30),
+                  ),
+                  Text('.', style: textHeading),
+                  Container(
+                    transform: Matrix4.translationValues(-11, 1, 0),
+                    child: Icon(Icons.exposure_zero,
+                        color: colorFgBold, size: 30),
+                  )
+                ],
+              ),
             ),
+          ),
+          GestureDetector(
+            onTap: () => _startWorkout(),
+            child: Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: colorBg,
+                  boxShadow: elevationShadowLight,
+                  borderRadius: borderRadius,
+                ),
+                child: Center(
+                    child: new SvgPicture.asset(
+                      'assets/sport.svg',
+                      color: colorFgBold,
+                      height: 45,
+                      width: 45,
+                    ))),
+          ),
+          Expanded(
+              flex: 1,
+              child:
+              GestureDetector(onTap: null,
+                  child: Icon(Icons.edit, color: colorFgBold, size: 30))),
+        ],
+      )
+          : GestureDetector(
+        onTap: () => _connectToESense(),
+        child: Center(
+            child: Text(
+              'Connect',
+              style: textCalendarDayToday,
+            )),
+      ),
     );
   }
 
   void _startWorkout() {
-    // TODO start listening to sensor data + classify for activity
+    if (!_workoutInProgress) {
+      setState(() {
+        _workoutInProgress = true;
+      });
+
+      // scroll relevant page into view
+      _carouselController.animateToPage(Summary.totalCount - 1,
+          duration: Duration(milliseconds: 1000), curve: ElasticOutCurve(1));
+
+      // TODO start listening to sensor data + classify for activity
+
+    }
   }
 
   void _finishWorkout() {
-    _todaysSummary.submit();
-    // TODO stop listening to sensor data
+    if (!_workoutInProgress) {
+      setState(() {
+        _workoutInProgress = false;
+      });
+
+      // scroll relevant page into view
+      _carouselController.animateToPage(Summary.totalCount - 1,
+          duration: Duration(milliseconds: 1000), curve: ElasticOutCurve(1));
+
+      // submit results to database
+      _todaysSummary.submit();
+
+      // TODO stop listening to sensor data
+
+    }
   }
-}
-
-class SummaryCard extends StatefulWidget {
-  final Summary summary;
-  final PageController controller;
-
-  const SummaryCard(this.summary, this.controller);
-
-  @override
-  _SummaryCardState createState() => _SummaryCardState();
 }
 
 class _SummaryCardState extends State<SummaryCard> {
@@ -766,9 +711,9 @@ class _SummaryCardState extends State<SummaryCard> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: _summary.counters.entries
-                        .map((entry) =>
-                            _counterDisplay(entry.key.toString(), entry.value))
-                        .toList() ??
+                    .map((entry) =>
+                    _counterDisplay(entry.key.toString(), entry.value))
+                    .toList() ??
                     []),
           ),
         )
@@ -787,9 +732,10 @@ class _SummaryCardState extends State<SummaryCard> {
     bool isToday = today.day == date.day && today.month == date.month;
 
     return GestureDetector(
-      onTap: () => widget.controller.animateToPage(Summary.totalCount - 1,
-          duration: Duration(milliseconds: 1000),
-          curve: const ElasticOutCurve(1)),
+      onTap: () =>
+          widget.controller.animateToPage(Summary.totalCount - 1,
+              duration: Duration(milliseconds: 1000),
+              curve: const ElasticOutCurve(1)),
       child: Container(
           height: 60,
           width: 60,
@@ -816,7 +762,7 @@ class _SummaryCardState extends State<SummaryCard> {
             children: [
               Text('$label',
                   style:
-                      textActivityLabel.copyWith(fontWeight: FontWeight.w400)),
+                  textActivityLabel.copyWith(fontWeight: FontWeight.w400)),
               Text('$value', style: textActivityCounter),
             ]));
   }
