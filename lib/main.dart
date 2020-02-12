@@ -247,47 +247,46 @@ class _MyAppState extends State<MyApp> {
       });
     });
 
-    _getESenseProperties();
-  }
-
-//  void _startListenToSensorEvents() async {
-//    // subscribe to sensor event from the eSense device
-//    subscription = ESenseManager.sensorEvents.listen((event) {
-//      print('SENSOR event: $event');
-//      setState(() {
-//        String summary = '';
-//        summary += '\nindex: ${event.packetIndex}';
-//        summary += '\ntimestamp: ${event.timestamp}';
-//        summary += '\naccel: ${event.accel}';
-//        summary += '\ngyro: ${event.gyro}';
-//        _event = summary;
-//      });
-//    });
-//    setState(() {
-//      sampling = true;
-//    });
-
-  void _getESenseProperties() async {
-    Timer.periodic(Duration(seconds: 10),
-        (timer) async => await ESenseManager.getBatteryVoltage());
-
-    // wait 2, 3, 4, 5, ... secs before getting the name, offset, etc.
-    // it seems like the eSense BTLE interface does NOT like to get called
-    // several times in a row -- hence, delays are added in the following calls
-    Timer(
-        Duration(seconds: 2), () async => await ESenseManager.getDeviceName());
-    Timer(Duration(seconds: 3),
-        () async => await ESenseManager.getAccelerometerOffset());
-    Timer(
-        Duration(seconds: 4),
-        () async =>
-            await ESenseManager.getAdvertisementAndConnectionInterval());
-    Timer(Duration(seconds: 5),
-        () async => await ESenseManager.getSensorConfig());
+//    _getESenseProperties();
   }
 
   StreamSubscription subscription;
 
+  void _startListenToSensorEvents() async {
+    // subscribe to sensor event from the eSense device
+    subscription = ESenseManager.sensorEvents.listen((event) {
+      print('SENSOR event: $event');
+      setState(() {
+        String summary = '';
+        summary += '\nindex: ${event.packetIndex}';
+        summary += '\ntimestamp: ${event.timestamp}';
+        summary += '\naccel: ${event.accel}';
+        summary += '\ngyro: ${event.gyro}';
+        _event = summary;
+      });
+    });
+    setState(() {
+      sampling = true;
+    });
+  }
+
+//  void _getESenseProperties() async {
+//    Timer.periodic(Duration(seconds: 10),
+//        (timer) async => await ESenseManager.getBatteryVoltage());
+//
+//    // wait 2, 3, 4, 5, ... secs before getting the name, offset, etc.
+//    // it seems like the eSense BTLE interface does NOT like to get called
+//    // several times in a row -- hence, delays are added in the following calls
+//    Timer(
+//        Duration(seconds: 2), () async => await ESenseManager.getDeviceName());
+//    Timer(Duration(seconds: 3),
+//        () async => await ESenseManager.getAccelerometerOffset());
+//    Timer(
+//        Duration(seconds: 4),
+//        () async =>
+//            await ESenseManager.getAdvertisementAndConnectionInterval());
+//    Timer(Duration(seconds: 5),
+//        () async => await ESenseManager.getSensorConfig());
 //  }
 
   void _pauseListenToSensorEvents() async {
@@ -504,6 +503,11 @@ class _MyAppState extends State<MyApp> {
         child: Container(
             margin: EdgeInsets.symmetric(vertical: 40),
             child: PageView.builder(
+                onPageChanged: (int page) {
+                  if (page != Summary.totalCount - 1) {
+                    _finishWorkout();
+                  }
+                },
                 controller: _carouselController,
                 scrollDirection: Axis.horizontal,
                 physics: BouncingScrollPhysics(),
@@ -615,7 +619,7 @@ class _MyAppState extends State<MyApp> {
           duration: Duration(milliseconds: 1000), curve: ElasticOutCurve(1));
 
       // TODO start listening to sensor data + classify for activity
-
+      _startListenToSensorEvents();
     }
   }
 
@@ -624,6 +628,7 @@ class _MyAppState extends State<MyApp> {
       setState(() {
         _workoutInProgress = false;
       });
+      _pauseListenToSensorEvents();
 
       // scroll relevant page into view
       _carouselController.animateToPage(Summary.totalCount - 1,
