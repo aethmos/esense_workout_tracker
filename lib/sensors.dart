@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:collection';
-import 'dart:html';
 import 'dart:math';
 
 import 'package:esense_flutter/esense.dart';
@@ -58,7 +57,7 @@ class SensorSubscription {
   Queue<AccelerometerEvent> phoneSensorSamples = Queue();
   Queue eSenseSensorSamples = Queue();
 
-  Accelerometer phoneSubscription;
+  StreamSubscription phoneSubscription;
   StreamSubscription eSenseSubscription;
   CombinedSensorEvent combinedEvent;
   void Function(CombinedSensorEvent) onData;
@@ -68,25 +67,17 @@ class SensorSubscription {
   SensorSubscription(this.onData);
 
   Future cancel() async {
-    phoneSubscription?.stop();
+    phoneSubscription?.cancel();
     eSenseSubscription?.cancel();
 
     phoneSensorSamples.clear();
     eSenseSensorSamples.clear();
   }
 
-//  dispatchEvent(event) {
-//    if (event.runtimeType == AccelerometerEvent) {
-//      onAccelerometerData(event);
-//    } else {
-//      oneSenseData(event);
-//    }
-//  }
-
-  void onPhoneData(Event event) {
+  void onPhoneData(AccelerometerEvent event) {
     print(event);
 
-    phoneSensorSamples.addLast(event as AccelerometerEvent);
+    phoneSensorSamples.addLast(event);
     if (phoneSensorSamples.length > queueSize) {
       phoneSensorSamples.removeFirst();
 
@@ -124,11 +115,10 @@ class SensorSubscription {
   }
 
   bool get isPaused =>
-      phoneSubscriptionIsPaused && eSenseSubscription.isPaused;
+      phoneSubscription.isPaused && eSenseSubscription.isPaused;
 
   void pause([Future resumeSignal]) {
-    phoneSubscription?.stop();
-    phoneSubscriptionIsPaused = true;
+    phoneSubscription?.pause();
     eSenseSubscription?.pause();
 
     phoneSensorSamples.clear();
@@ -136,8 +126,7 @@ class SensorSubscription {
   }
 
   void resume() {
-    phoneSubscription?.start();
-    phoneSubscriptionIsPaused = false;
+    phoneSubscription?.resume();
     eSenseSubscription?.resume();
   }
 }
@@ -145,9 +134,7 @@ class SensorSubscription {
 SensorSubscription listenToSensorEvents(Function onData) {
   var subscription = SensorSubscription(onData);
 
-  subscription.phoneSubscription =
-      Accelerometer()..addEventListener('data', subscription.onPhoneData);
-  subscription.phoneSubscription.start();
+  subscription.phoneSubscription = accelerometerEvents.listen(subscription.onPhoneData);
   subscription.phoneSubscriptionIsPaused = false;
 
   if (ESenseManager.connected) {
