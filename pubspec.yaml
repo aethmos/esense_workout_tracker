@@ -29,6 +29,8 @@ dependencies:
   intl:
   cloud_firestore:
   animator:
+  moving_average:
+  sensors:
 
 dev_dependencies:
   flutter_test:
