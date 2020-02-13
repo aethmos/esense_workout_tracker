@@ -4,8 +4,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:one_up/constants.dart';
-
-import 'homepage.dart';
+import 'package:one_up/homepage.dart';
 
 void main() => runApp(MyApp());
 
