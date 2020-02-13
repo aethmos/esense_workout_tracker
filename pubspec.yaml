@@ -20,17 +20,24 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^0.1.2
-  esense_flutter: ^0.2.0+2
-  speech_to_text: ^0.8.0
-  flutter_svg:
-  intl:
-  cloud_firestore:
-  animator:
-  moving_average:
+  # read phone's accelerometer data
   sensors:
+
+  # connect to eSense earable device and read sensor data
+  esense_flutter: ^0.2.0+2
+
+  # calculate moving and weighted averages from sensor data
+  moving_average:
+
+  # embed svg images as icons
+  flutter_svg:
+
+  # provides DateFormat utility
+  intl:
+
+  # connect to Firestore database
+  cloud_firestore:
+
 
 dev_dependencies:
   flutter_test:

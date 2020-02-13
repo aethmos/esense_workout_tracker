@@ -11,7 +11,6 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:one_up/constants.dart';
 import 'package:one_up/sensors.dart';
 import 'package:one_up/summary.dart';
-import 'package:speech_to_text/speech_to_text.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -25,7 +24,6 @@ class _HomePageState extends State<HomePage> {
   bool sampling = false;
   String _event = '';
   String _button = 'not pressed';
-  final SpeechToText speech = SpeechToText();
   String lastWords = '';
   String lastError = '';
   String lastStatus = '';
@@ -323,10 +321,6 @@ class _HomePageState extends State<HomePage> {
             'Event Type:',
             _event,
           ),
-          _sensorDataDisplay(
-            'Speech Input${speech.isListening ? ' - listening...' : ':'}',
-            lastWords,
-          )
         ]));
   }
 
