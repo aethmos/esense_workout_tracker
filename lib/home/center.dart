@@ -146,9 +146,9 @@ class _SummaryCardState extends State<SummaryCard> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: _summary.counters.entries
-                        .map((entry) =>
-                            _counterDisplay(entry.key.toString(), entry.value))
-                        .toList() ??
+                    .map((entry) =>
+                    ActivityCounter(entry.key.toString(), entry.value))
+                    .toList() ??
                     []),
           ),
         )
@@ -183,8 +183,21 @@ class _SummaryCardState extends State<SummaryCard> {
           ])),
     );
   }
+}
 
-  Widget _counterDisplay(String label, int value) {
+class ActivityCounter extends StatefulWidget {
+  ActivityCounter(this.label, this.value, [this.active = false]);
+  final String label;
+  final int value;
+  final bool active;
+
+  @override
+  _ActivityCounterState createState() => _ActivityCounterState();
+}
+
+class _ActivityCounterState extends State<ActivityCounter> {
+  @override
+  Widget build(BuildContext context) {
     return new Container(
         margin: EdgeInsets.only(top: 20),
         child: Row(
@@ -192,10 +205,10 @@ class _SummaryCardState extends State<SummaryCard> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             mainAxisSize: MainAxisSize.max,
             children: [
-              Text('$label',
+              Text('${widget.label}',
                   style:
                       textActivityLabel.copyWith(fontWeight: FontWeight.w400)),
-              Text('$value', style: textActivityCounter),
+              Text('${widget.value}', style: textActivityCounter),
             ]));
   }
 }

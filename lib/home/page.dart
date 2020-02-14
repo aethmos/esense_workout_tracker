@@ -60,9 +60,8 @@ class _HomePageState extends State<HomePage> {
         Summary.collection.snapshots().listen((QuerySnapshot snapshot) {
       var summaries = snapshot.documents.map((DocumentSnapshot document) {
         var summary = new Summary.fromDocument(document);
-        print(summary.date);
         return summary;
-      }).toList();
+      }).where((summary) => summary.isFromToday || summary.counters.values.reduce((a, b) => a + b) > 0).toList();
       setSummaries(summaries);
     });
   }
@@ -130,7 +129,7 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         switch (event.runtimeType) {
           case DeviceNameRead:
-//            _deviceName = (event as DeviceNameRead).deviceName;
+            _deviceName = (event as DeviceNameRead).deviceName;
             break;
           case BatteryRead:
             _voltage = (event as BatteryRead).voltage;
@@ -148,7 +147,7 @@ class _HomePageState extends State<HomePage> {
           case AdvertisementAndConnectionIntervalRead:
             break;
           case SensorConfigRead:
-            print((event as SensorConfigRead).toString());
+            break;
         }
       });
     });
