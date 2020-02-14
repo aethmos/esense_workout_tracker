@@ -6,8 +6,9 @@ import 'package:one_up/vars/constants.dart';
 
 
 class ConnectionSummary extends StatelessWidget {
-  ConnectionSummary(this.deviceStatus, this.voltage, this.button, this.event);
+  ConnectionSummary(this.key, this.deviceStatus, this.voltage, this.button, this.event) : super(key: key);
 
+  final Key key;
   final String deviceStatus;
   final double voltage;
   final String button;
