@@ -2,8 +2,8 @@ import 'package:esense_flutter/esense.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:one_up/constants.dart';
-import 'package:one_up/summary.dart';
+import 'package:one_up/vars/constants.dart';
+import 'package:one_up/model/summary.dart';
 
 
 class ActionsPanel extends StatelessWidget {

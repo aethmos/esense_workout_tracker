@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:one_up/constants.dart';
+import 'package:one_up/vars/constants.dart';
 
 
 class ConnectionSummary extends StatelessWidget {

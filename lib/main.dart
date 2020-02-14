@@ -1,10 +1,9 @@
 import 'dart:ui';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:one_up/constants.dart';
-import 'package:one_up/homepage.dart';
+import 'package:one_up/home/page.dart';
+import 'package:one_up/vars/constants.dart';
 
 void main() => runApp(MyApp());
 

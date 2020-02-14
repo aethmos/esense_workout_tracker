@@ -4,7 +4,7 @@ import 'package:esense_flutter/esense.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:one_up/constants.dart';
+import 'package:one_up/vars/constants.dart';
 
 
 class HeaderPanel extends StatelessWidget {

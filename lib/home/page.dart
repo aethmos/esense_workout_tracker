@@ -4,13 +4,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:esense_flutter/esense.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:one_up/constants.dart';
-import 'package:one_up/content.dart';
-import 'package:one_up/debug.dart';
-import 'package:one_up/footer.dart';
-import 'package:one_up/header.dart';
-import 'package:one_up/sensors.dart';
-import 'package:one_up/summary.dart';
+import 'package:one_up/home/center.dart';
+import 'package:one_up/home/footer.dart';
+import 'package:one_up/home/header.dart';
+import 'package:one_up/model/summary.dart';
+import 'package:one_up/utils/sensorInfo.dart';
+import 'package:one_up/utils/sensors.dart';
+import 'package:one_up/vars/constants.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -44,8 +44,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _initSummaries() {
-    Firestore.instance
-        .collection('summaries')
+    Summary
+        .collection
         .snapshots()
         .listen((QuerySnapshot snapshot) {
       setState(() {
