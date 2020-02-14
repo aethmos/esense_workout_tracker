@@ -7,12 +7,12 @@ import 'package:one_up/model/summary.dart';
 
 
 class ActionsPanel extends StatelessWidget {
-  ActionsPanel(this.connectToESense, this.startWorkout, this.finishWorkout, this.workoutInProgress, this.todaysSummary);
+  ActionsPanel(this.connectToESense, this.startWorkout, this.finishWorkout, this.workoutInProgress, this.currentSummary);
   final void Function() connectToESense;
   final void Function() startWorkout;
   final void Function() finishWorkout;
   final bool workoutInProgress;
-  final Summary todaysSummary;
+  final Summary currentSummary;
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +51,7 @@ class ActionsPanel extends StatelessWidget {
           Expanded(
             flex: 1,
             child: GestureDetector(
-              onTap: () => todaysSummary.reset().submit(),
+              onTap: () => currentSummary.reset().submit(),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,

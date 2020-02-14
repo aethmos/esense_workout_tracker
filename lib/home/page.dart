@@ -18,63 +18,55 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  SensorSubscription sensorSubscription;
   String _deviceName = 'eSense-0151';
   double _voltage = -1;
   String _deviceStatus = '';
-  bool sampling = false;
   String _event = '';
   String _button = 'not pressed';
-  String lastWords = '';
-  String lastError = '';
-  String lastStatus = '';
+  bool _sampling = false;
 
   bool _tryingToConnect = false;
   List<Summary> _summaries = new List();
   PageController _carouselController;
-  Summary _todaysSummary;
+  Summary _currentSummary;
 
-//  bool _todaysSummaryInView = true;
+//  bool _currentSummaryInView = true;
   bool _workoutInProgress = false;
 
-  @override
-  void initState() {
-    _initSummaries();
-    _connectToESense();
-    super.initState();
-  }
-
-  void _initSummaries() {
-    Summary
-        .collection
-        .snapshots()
-        .listen((QuerySnapshot snapshot) {
-      setState(() {
-        _summaries = snapshot.documents.map((DocumentSnapshot document) {
-          var summary = new Summary.fromDocument(document);
-          print(summary.date);
-          return summary;
-        }).toList();
-      });
-      // add an empty summary for today if there is none
-      if (!_summaries[_summaries.length - 1].isFromToday) {
-        Summary.create().add();
-      }
-      _carouselController = PageController(
-          initialPage: Summary.totalCount - 1,
-          keepPage: false,
-          viewportFraction: 300 / 370);
-    });
-  }
+  int _currentPage = 0;
 
   @override
   void dispose() {
     _carouselController.dispose();
-    _pauseListenToSensorEvents();
+    sensorSubscription?.cancel();
     ESenseManager.disconnect();
     super.dispose();
   }
 
-  Future<void> _connectToESense() async {
+  @override
+  void initState() {
+    _getSummaries();
+    _connectESense();
+    super.initState();
+  }
+
+  void _getSummaries() {
+    Summary.collection.snapshots().listen((QuerySnapshot snapshot) {
+      var summaries = snapshot.documents.map((DocumentSnapshot document) {
+        var summary = new Summary.fromDocument(document);
+        print(summary.date);
+        return summary;
+      }).toList();
+
+      // add an empty summary for today if there is none
+      if (!_summaries[0].isFromToday) {
+        Summary.create().add();
+      }
+    });
+  }
+
+  Future<void> _connectESense() async {
     bool con = false;
 
     // if you want to get the connection events when connecting, set up the listener BEFORE connecting...
@@ -148,18 +140,6 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  SensorSubscription sensorSubscription;
-
-  void _startListenToSensorEvents() async {
-    sensorSubscription = listenToSensorEvents((CombinedSensorEvent event) {
-      print(event);
-    });
-  }
-
-  void _pauseListenToSensorEvents() async {
-    sensorSubscription?.cancel();
-  }
-
   void setESenseName(String name) {
     setState(() {
       _deviceName = name;
@@ -174,7 +154,8 @@ class _HomePageState extends State<HomePage> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
-          HeaderPanel(_deviceName, setESenseName, _connectToESense, _tryingToConnect, ESenseManager.connected),
+          HeaderPanel(_deviceName, setESenseName, _connectESense,
+              _tryingToConnect, ESenseManager.connected),
           StreamBuilder(
               stream: Summary.collection.snapshots(),
               builder: (BuildContext context,
@@ -193,16 +174,18 @@ class _HomePageState extends State<HomePage> {
                     return SummaryCarousel([
                       ..._summaries.map((data) {
                         if (data.isFromToday) {
-                          _todaysSummary = data;
+                          _currentSummary = data;
                         }
                         return SummaryCard(data, _carouselController);
                       }),
-                      ConnectionSummary(_deviceStatus, _voltage, _button, _event)
+                      ConnectionSummary(
+                          _deviceStatus, _voltage, _button, _event)
                     ],
-                    _carouselController);
+                    setCurrentPage);
                 }
               }),
-          ActionsPanel(_connectToESense, _startWorkout, _finishWorkout, _tryingToConnect, _todaysSummary),
+          ActionsPanel(_connectESense, _startWorkout, _finishWorkout,
+              _tryingToConnect, _currentSummary),
         ],
       ),
     );
@@ -219,7 +202,13 @@ class _HomePageState extends State<HomePage> {
           duration: Duration(milliseconds: 1000), curve: ElasticOutCurve(1));
 
       // TODO start listening to sensor data + classify for activity
-      _startListenToSensorEvents();
+      if (sensorSubscription == null) {
+        sensorSubscription = listenToSensorEvents((CombinedSensorEvent event) {
+          print(event);
+        });
+      } else {
+        sensorSubscription.resume();
+      }
     }
   }
 
@@ -228,18 +217,23 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         _workoutInProgress = false;
       });
-      _pauseListenToSensorEvents();
+      sensorSubscription?.pause();
 
       // scroll relevant page into view
       _carouselController.animateToPage(Summary.totalCount - 1,
           duration: Duration(milliseconds: 1000), curve: ElasticOutCurve(1));
 
       // submit results to database
-      _todaysSummary.submit();
+      _currentSummary.submit();
 
       // TODO stop listening to sensor data
 
     }
   }
-}
 
+  void setCurrentPage(int page) {
+    setState(() {
+      _currentPage = page;
+    });
+  }
+}

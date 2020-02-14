@@ -15,7 +15,7 @@ class Summary {
   DateTime date;
   Map<String, int> counters;
 
-  static get collection => Firestore.instance.collection(collectionName);
+  static Query get collection => Firestore.instance.collection(collectionName).orderBy('date', descending: true);
 
   factory Summary.fromDocument(DocumentSnapshot document) {
     return Summary(
