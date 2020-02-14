@@ -38,6 +38,8 @@ class _HomePageState extends State<HomePage> {
 
   int _currentPage = 0;
 
+  String _currentActivity;
+
   @override
   void dispose() {
     _carouselController.dispose();
@@ -58,10 +60,15 @@ class _HomePageState extends State<HomePage> {
   void _fetchSummaries() {
     _summarySubscription =
         Summary.collection.snapshots().listen((QuerySnapshot snapshot) {
-      var summaries = snapshot.documents.map((DocumentSnapshot document) {
-        var summary = new Summary.fromDocument(document);
-        return summary;
-      }).where((summary) => summary.isFromToday || summary.counters.values.reduce((a, b) => a + b) > 0).toList();
+      var summaries = snapshot.documents
+          .map((DocumentSnapshot document) {
+            var summary = new Summary.fromDocument(document);
+            return summary;
+          })
+          .where((summary) =>
+              summary.isFromToday ||
+              summary.counters.values.reduce((a, b) => a + b) > 0)
+          .toList();
       setSummaries(summaries);
     });
   }
@@ -169,8 +176,13 @@ class _HomePageState extends State<HomePage> {
         children: <Widget>[
           HeaderPanel(_deviceName, setESenseName, _connectESense,
               _tryingToConnect, ESenseManager.connected),
-          SummaryCarousel(key, _summaries, setCurrentPage,
-              ConnectionSummary(key, _deviceStatus, _voltage, _button, _event)),
+          SummaryCarousel(
+            key,
+            _summaries,
+            setCurrentPage,
+            _currentActivity,
+            ConnectionSummary(key, _deviceStatus, _voltage, _button, _event),
+          ),
           ActionsPanel(_connectESense, _startWorkout, _finishWorkout,
               _tryingToConnect, _currentSummary),
         ],

@@ -5,8 +5,9 @@ import 'package:one_up/model/summary.dart';
 import 'package:one_up/vars/constants.dart';
 
 class SummaryCarousel extends StatefulWidget {
-  SummaryCarousel(this.key, this.summaries, this.onPageChange, [this.debugCard]) : super(key: key);
+  SummaryCarousel(this.key, this.summaries, this.onPageChange, this.currentActivity, [this.debugCard]) : super(key: key);
 
+  final String currentActivity;
   final Key key;
   final List<Summary> summaries;
   final void Function(int) onPageChange;
@@ -67,17 +68,18 @@ class _SummaryCarouselState extends State<SummaryCarousel> {
                     return widget.debugCard;
                   }
                   var summary = widget.summaries[index];
-                  return SummaryCard(ValueKey(summary.id), summary, animatePage, lastPage);
+                  return SummaryCard(ValueKey(summary.id), summary, animatePage, lastPage, widget.currentActivity);
                 })));
   }
 }
 
 class SummaryCard extends StatefulWidget {
-  const SummaryCard(this.key, this.summary, this.goToPage, this.lastPage) : super(key: key);
+  const SummaryCard(this.key, this.summary, this.goToPage, this.lastPage, this.currentActivity) : super(key: key);
   final Key key;
   final Summary summary;
   final void Function(int page) goToPage;
   final int lastPage;
+  final String  currentActivity;
 
   @override
   _SummaryCardState createState() => _SummaryCardState();
@@ -147,7 +149,7 @@ class _SummaryCardState extends State<SummaryCard> {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: _summary.counters.entries
                     .map((entry) =>
-                    ActivityCounter(entry.key.toString(), entry.value))
+                    ActivityCounter(entry.key.toString(), entry.value, widget.currentActivity == entry.key.toString()))
                     .toList() ??
                     []),
           ),
@@ -185,17 +187,12 @@ class _SummaryCardState extends State<SummaryCard> {
   }
 }
 
-class ActivityCounter extends StatefulWidget {
+class ActivityCounter extends StatelessWidget {
   ActivityCounter(this.label, this.value, [this.active = false]);
   final String label;
   final int value;
   final bool active;
 
-  @override
-  _ActivityCounterState createState() => _ActivityCounterState();
-}
-
-class _ActivityCounterState extends State<ActivityCounter> {
   @override
   Widget build(BuildContext context) {
     return new Container(
@@ -205,10 +202,12 @@ class _ActivityCounterState extends State<ActivityCounter> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             mainAxisSize: MainAxisSize.max,
             children: [
-              Text('${widget.label}',
+              Text('$label',
                   style:
-                      textActivityLabel.copyWith(fontWeight: FontWeight.w400)),
-              Text('${widget.value}', style: textActivityCounter),
+                      textActivityLabel.copyWith(
+                          fontWeight: FontWeight.w400,
+                          color: active ? colorAccent : textActivityLabel.color)),
+              Text('$value', style: textActivityCounter),
             ]));
   }
 }
