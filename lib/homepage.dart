@@ -18,7 +18,7 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  //  String _deviceName = 'Unknown';
+  String _deviceName = 'eSense-0151';
   double _voltage = -1;
   String _deviceStatus = '';
   bool sampling = false;
@@ -74,7 +74,7 @@ class _HomePageState extends State<HomePage> {
     super.dispose();
   }
 
-  Future<void> _connectToESense({eSenseName = 'eSense-0151'}) async {
+  Future<void> _connectToESense() async {
     bool con = false;
 
     // if you want to get the connection events when connecting, set up the listener BEFORE connecting...
@@ -109,10 +109,10 @@ class _HomePageState extends State<HomePage> {
       _tryingToConnect = true;
     });
 
-    con = await ESenseManager.connect(eSenseName);
+    con = await ESenseManager.connect(_deviceName);
 
     setState(() {
-      _deviceStatus = con ? 'connecting to $eSenseName' : 'connection failed';
+      _deviceStatus = con ? 'connecting to $_deviceName' : 'connection failed';
       _tryingToConnect = false;
     });
   }
@@ -160,6 +160,12 @@ class _HomePageState extends State<HomePage> {
     sensorSubscription?.cancel();
   }
 
+  void setESenseName(String name) {
+    setState(() {
+      _deviceName = name;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -168,7 +174,7 @@ class _HomePageState extends State<HomePage> {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
-          _headerPanel(),
+          HeaderPanel(_deviceName, setESenseName, _connectToESense, _tryingToConnect, ESenseManager.connected),
           StreamBuilder(
               stream: Summary.collection.snapshots(),
               builder: (BuildContext context,
@@ -184,272 +190,20 @@ class _HomePageState extends State<HomePage> {
                       var summary = Summary.fromDocument(document);
                       return summary;
                     }).toList();
-                    return _snappyCarousel([
+                    return SummaryCarousel([
                       ..._summaries.map((data) {
                         if (data.isFromToday) {
                           _todaysSummary = data;
                         }
                         return SummaryCard(data, _carouselController);
                       }),
-                      _connectionSummary()
-                    ]);
+                      ConnectionSummary(_deviceStatus, _voltage, _button, _event)
+                    ],
+                    _carouselController);
                 }
               }),
-          _actionsPanel(),
+          ActionsPanel(_connectToESense, _startWorkout, _finishWorkout, _tryingToConnect, _todaysSummary),
         ],
-      ),
-    );
-  }
-
-
-  Widget _headerPanel() {
-    return Container(
-        height: 100,
-        width: 300,
-        decoration: BoxDecoration(
-          color: colorBg,
-          boxShadow: elevationShadow,
-          borderRadius: borderRadius,
-        ),
-        margin: EdgeInsets.only(top: 60),
-        child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-                (ESenseManager.connected)
-                    ? Text('eSense-1585', style: textHeading)
-                    : Container(
-                    width: 165,
-                    padding: EdgeInsets.only(left: 10),
-                    decoration: BoxDecoration(
-                        color: colorBg,
-                        boxShadow: elevationShadowLight,
-                        borderRadius: borderRadius),
-                    child: TextFormField(
-                      style: textHeading.copyWith(color: colorFgLight),
-                      autofocus: false,
-                      autocorrect: false,
-                      showCursor: true,
-                      cursorRadius: Radius.circular(3),
-                      textCapitalization: TextCapitalization.none,
-                      initialValue: 'eSense-0151',
-                      decoration: InputDecoration(
-                        focusedBorder: InputBorder.none,
-                        errorBorder: InputBorder.none,
-                        border: InputBorder.none,
-                      ),
-                      onFieldSubmitted: (String value) {
-                        _connectToESense(eSenseName: value);
-                      },
-                    )),
-                Container(
-                    margin: EdgeInsets.only(top: 5),
-                    child: Row(
-                      children: (ESenseManager.connected)
-                          ? [
-                        Icon(Icons.check,
-                            color: colorGood,
-                            size: textSubheading.fontSize),
-                        Text(
-                          'Connected',
-                          style: textSubheading,
-                        )
-                      ]
-                          : _tryingToConnect
-                          ? [
-                        Icon(Icons.timelapse,
-                            color: colorNeutral,
-                            size: textSubheading.fontSize),
-                        Text(
-                          'Connecting...',
-                          style: textSubheading,
-                        )
-                      ]
-                          : [],
-                    ))
-              ]),
-              GestureDetector(
-                onTap: () => ESenseManager.connected
-                    ? ESenseManager.disconnect()
-                    : _connectToESense(),
-                child: Container(
-                    height: 60,
-                    width: 60,
-                    decoration: BoxDecoration(
-                      color: colorBg,
-                      boxShadow: elevationShadowExtraLight,
-                      borderRadius: borderRadius,
-                    ),
-                    child: Icon(
-                      (ESenseManager.connected)
-                          ? Icons.delete_outline
-                          : Icons.bluetooth_searching,
-                      color: textHeading.color,
-                      size: 25,
-                    )),
-              )
-            ]));
-  }
-
-  Widget _connectionSummary() {
-    return Container(
-        height: 460,
-        width: 300,
-        decoration: BoxDecoration(
-          color: colorBg,
-          boxShadow: elevationShadow,
-          borderRadius: borderRadius,
-        ),
-        margin: EdgeInsets.all(20),
-        padding: EdgeInsets.all(25),
-        child: Column(children: <Widget>[
-          Icon(Icons.network_check),
-          _sensorDataDisplay(
-            'Device Status:',
-            _deviceStatus,
-          ),
-          _sensorDataDisplay(
-            'Battery Level:',
-            '${(min(_voltage / 4000, 1) * 100).round()}%',
-          ),
-          _sensorDataDisplay(
-            'Button Pressed:',
-            _button,
-          ),
-          _sensorDataDisplay(
-            'Event Type:',
-            _event,
-          ),
-        ]));
-  }
-
-  Widget _sensorDataDisplay(label, value) {
-    return Padding(
-        padding: EdgeInsets.only(top: 15),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: <Widget>[
-            Text('$label', style: textHeading.copyWith(fontSize: 22)),
-            Container(
-              height: 5,
-            ),
-            Text(
-              '$value',
-              overflow: TextOverflow.clip,
-              style: textHeading.copyWith(fontSize: 16),
-            )
-          ],
-        ));
-  }
-
-  Widget _snappyCarousel(List<Widget> items) {
-    return Expanded(
-        flex: 3,
-        child: Container(
-            margin: EdgeInsets.symmetric(vertical: 40),
-            child: PageView.builder(
-//                onPageChanged: (int page) {
-//                  if (page != Summary.totalCount - 1) {
-//                    _finishWorkout();
-//                  }
-//                },
-                controller: _carouselController,
-                scrollDirection: Axis.horizontal,
-                physics: BouncingScrollPhysics(),
-                itemCount: items.length,
-                itemBuilder: (context, index) => items[index])));
-  }
-
-  Widget _actionsPanel() {
-    return Container(
-      height: 80,
-      width: 300,
-      decoration: BoxDecoration(
-        color: colorBg,
-        boxShadow: elevationShadow,
-        borderRadius: borderRadius,
-      ),
-      margin: EdgeInsets.only(bottom: 40),
-      child: (ESenseManager.connected)
-          ? Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: _workoutInProgress
-            ? [
-          Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: colorBg,
-                boxShadow: elevationShadowLight,
-                borderRadius: borderRadius,
-              ),
-              child: GestureDetector(
-                onTap: () => _finishWorkout(),
-                child: Center(
-                  child: Icon(Icons.check,
-                      color: colorFgBold, size: 60),
-                ),
-              )),
-        ]
-            : <Widget>[
-          Expanded(
-            flex: 1,
-            child: GestureDetector(
-              onTap: () => _todaysSummary.reset().submit(),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Container(
-                    transform: Matrix4.translationValues(10, 1, 0),
-                    child: Icon(Icons.exposure_zero,
-                        color: colorFgBold, size: 30),
-                  ),
-                  Text('.', style: textHeading),
-                  Container(
-                    transform: Matrix4.translationValues(-11, 1, 0),
-                    child: Icon(Icons.exposure_zero,
-                        color: colorFgBold, size: 30),
-                  )
-                ],
-              ),
-            ),
-          ),
-          GestureDetector(
-            onTap: () => _startWorkout(),
-            child: Container(
-                width: 60,
-                height: 60,
-                decoration: BoxDecoration(
-                  color: colorBg,
-                  boxShadow: elevationShadowLight,
-                  borderRadius: borderRadius,
-                ),
-                child: Center(
-                    child: new SvgPicture.asset(
-                      'assets/sport.svg',
-                      color: colorFgBold,
-                      height: 45,
-                      width: 45,
-                    ))),
-          ),
-          Expanded(
-              flex: 1,
-              child: GestureDetector(
-                  onTap: null,
-                  child: Icon(Icons.edit,
-                      color: colorFgBold, size: 30))),
-        ],
-      )
-          : GestureDetector(
-        onTap: () => _connectToESense(),
-        child: Center(
-            child: Text(
-              'Connect',
-              style: textCalendarDayToday,
-            )),
       ),
     );
   }
@@ -486,5 +240,308 @@ class _HomePageState extends State<HomePage> {
       // TODO stop listening to sensor data
 
     }
+  }
+}
+
+
+class HeaderPanel extends StatelessWidget {
+  HeaderPanel(this.eSenseName, this.setESenseName, this.connectToESense, this.tryingToConnect, this.isConnected);
+
+  final String eSenseName;
+  final void Function(String eSenseName) setESenseName;
+  final void Function() connectToESense;
+  final bool tryingToConnect;
+  final bool isConnected;
+
+  void connect(_) => connectToESense;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+        height: 100,
+        width: 300,
+        decoration: BoxDecoration(
+          color: colorBg,
+          boxShadow: elevationShadow,
+          borderRadius: borderRadius,
+        ),
+        margin: EdgeInsets.only(top: 60),
+        child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                (isConnected)
+                    ? Text(eSenseName, style: textHeading)
+                    : Container(
+                    width: 165,
+                    padding: EdgeInsets.only(left: 10),
+                    decoration: BoxDecoration(
+                        color: colorBg,
+                        boxShadow: elevationShadowLight,
+                        borderRadius: borderRadius),
+                    child: TextFormField(
+                      style: textHeading.copyWith(color: colorFgLight),
+                      autofocus: false,
+                      autocorrect: false,
+                      showCursor: true,
+                      cursorRadius: Radius.circular(3),
+                      textCapitalization: TextCapitalization.none,
+                      initialValue: eSenseName,
+                      decoration: InputDecoration(
+                        focusedBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        border: InputBorder.none,
+                      ),
+                      onChanged: setESenseName,
+                      onFieldSubmitted: connect,
+                    )),
+                Container(
+                    margin: EdgeInsets.only(top: 5),
+                    child: Row(
+                      children: (isConnected)
+                          ? [
+                        Icon(Icons.check,
+                            color: colorGood,
+                            size: textSubheading.fontSize),
+                        Text(
+                          'Connected',
+                          style: textSubheading,
+                        )
+                      ]
+                          : tryingToConnect
+                          ? [
+                        Icon(Icons.timelapse,
+                            color: colorNeutral,
+                            size: textSubheading.fontSize),
+                        Text(
+                          'Connecting...',
+                          style: textSubheading,
+                        )
+                      ]
+                          : [],
+                    ))
+              ]),
+              GestureDetector(
+                onTap: isConnected ? ESenseManager.disconnect : connectToESense,
+                child: Container(
+                    height: 60,
+                    width: 60,
+                    decoration: BoxDecoration(
+                      color: colorBg,
+                      boxShadow: elevationShadowExtraLight,
+                      borderRadius: borderRadius,
+                    ),
+                    child: Icon(
+                      (isConnected)
+                          ? Icons.delete_outline
+                          : Icons.bluetooth_searching,
+                      color: textHeading.color,
+                      size: 25,
+                    )
+                )
+                ,
+              )
+            ]
+        )
+    );
+  }
+}
+
+class ConnectionSummary extends StatelessWidget {
+  ConnectionSummary(this.deviceStatus, this.voltage, this.button, this.event);
+
+  final String deviceStatus;
+  final double voltage;
+  final String button;
+  final String event;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+        height: 460,
+        width: 300,
+        decoration: BoxDecoration(
+          color: colorBg,
+          boxShadow: elevationShadow,
+          borderRadius: borderRadius,
+        ),
+        margin: EdgeInsets.all(20),
+        padding: EdgeInsets.all(25),
+        child: Column(children: <Widget>[
+          Icon(Icons.network_check),
+          SensorDataDisplay(
+            'Device Status:',
+            deviceStatus,
+          ),
+          SensorDataDisplay(
+            'Battery Level:',
+            '${(min(voltage / 4000, 1) * 100).round()}%',
+          ),
+          SensorDataDisplay(
+            'Button Pressed:',
+            button,
+          ),
+          SensorDataDisplay(
+            'Event Type:',
+            event,
+          ),
+        ]));
+  }
+}
+
+class SensorDataDisplay extends StatelessWidget {
+  SensorDataDisplay(this.label, this.value);
+
+  final String label;
+  final dynamic value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+        padding: EdgeInsets.only(top: 15),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: <Widget>[
+            Text('$label', style: textHeading.copyWith(fontSize: 22)),
+            Container(
+              height: 5,
+            ),
+            Text(
+              '$value',
+              overflow: TextOverflow.clip,
+              style: textHeading.copyWith(fontSize: 16),
+            )
+          ],
+        ));
+  }
+}
+
+class SummaryCarousel extends StatelessWidget {
+  SummaryCarousel(this.items, this.controller);
+
+  final List<Widget> items;
+  final PageController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+        flex: 3,
+        child: Container(
+            margin: EdgeInsets.symmetric(vertical: 40),
+            child: PageView.builder(
+//                onPageChanged: (int page) {
+//                  if (page != Summary.totalCount - 1) {
+//                    _finishWorkout();
+//                  }
+//                },
+                controller: controller,
+                scrollDirection: Axis.horizontal,
+                physics: BouncingScrollPhysics(),
+                itemCount: items.length,
+                itemBuilder: (context, index) => items[index])));
+  }
+}
+
+class ActionsPanel extends StatelessWidget {
+  ActionsPanel(this.connectToESense, this.startWorkout, this.finishWorkout, this.workoutInProgress, this.todaysSummary);
+  final void Function() connectToESense;
+  final void Function() startWorkout;
+  final void Function() finishWorkout;
+  final bool workoutInProgress;
+  final Summary todaysSummary;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 80,
+      width: 300,
+      decoration: BoxDecoration(
+        color: colorBg,
+        boxShadow: elevationShadow,
+        borderRadius: borderRadius,
+      ),
+      margin: EdgeInsets.only(bottom: 40),
+      child: (ESenseManager.connected)
+          ? Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: workoutInProgress
+            ? [
+          Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: colorBg,
+                boxShadow: elevationShadowLight,
+                borderRadius: borderRadius,
+              ),
+              child: GestureDetector(
+                onTap: () => finishWorkout(),
+                child: Center(
+                  child: Icon(Icons.check,
+                      color: colorFgBold, size: 60),
+                ),
+              )),
+        ]
+            : <Widget>[
+          Expanded(
+            flex: 1,
+            child: GestureDetector(
+              onTap: () => todaysSummary.reset().submit(),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  Container(
+                    transform: Matrix4.translationValues(10, 1, 0),
+                    child: Icon(Icons.exposure_zero,
+                        color: colorFgBold, size: 30),
+                  ),
+                  Text('.', style: textHeading),
+                  Container(
+                    transform: Matrix4.translationValues(-11, 1, 0),
+                    child: Icon(Icons.exposure_zero,
+                        color: colorFgBold, size: 30),
+                  )
+                ],
+              ),
+            ),
+          ),
+          GestureDetector(
+            onTap: () => startWorkout(),
+            child: Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  color: colorBg,
+                  boxShadow: elevationShadowLight,
+                  borderRadius: borderRadius,
+                ),
+                child: Center(
+                    child: new SvgPicture.asset(
+                      'assets/sport.svg',
+                      color: colorFgBold,
+                      height: 45,
+                      width: 45,
+                    ))),
+          ),
+          Expanded(
+              flex: 1,
+              child: GestureDetector(
+                  onTap: null,
+                  child: Icon(Icons.edit,
+                      color: colorFgBold, size: 30))),
+        ],
+      )
+          : GestureDetector(
+        onTap: () => connectToESense(),
+        child: Center(
+            child: Text(
+              'Connect',
+              style: textCalendarDayToday,
+            )),
+      ),
+    );
   }
 }
