@@ -179,6 +179,7 @@ class ActivityClassifier {
   void Function(String) onActivity;
 
   List<List<dynamic>> checkpoints = List();
+  Timer inactivityTimer;
 
   void setPosture() {
     if (phoneMovingAverage.x + 0.3 > phoneMovingAverage.z &&
@@ -229,10 +230,22 @@ class ActivityClassifier {
     if (anyChange) classifyActivity();
   }
 
+  void resetCheckpoints([Timer timer]) {
+    timer?.cancel();
+    compatibleActivities.clear();
+    checkpoints.clear();
+    onActivity(NEUTRAL);
+  }
+
+  void recordCheckpoint([SensorValues data]) {
+    inactivityTimer?.cancel();
+    inactivityTimer = Timer.periodic(Duration(seconds: 3), resetCheckpoints);
+    checkpoints.add([phoneMovingAverage, eSenseMovingAverage, data ?? null]);
+  }
+
   void classifyActivity() {
-    if (compatibleActivities.length == 0) {
-      onActivity(NEUTRAL);
-      checkpoints.clear();
+    if (compatibleActivities.isEmpty) {
+      resetCheckpoints();
 
       switch (bodyPosture) {
         case STANDING:
@@ -249,10 +262,10 @@ class ActivityClassifier {
         default:
           return;
       }
-      checkpoints.add([phoneMovingAverage, eSenseMovingAverage, 0]);
+      recordCheckpoint();
     } else {
-      SensorValues prevESenseMovAvg = checkpoints.last[0];
-      SensorValues prevPhoneMovAvg = checkpoints.last[1];
+      SensorValues prevPhoneMovAvg = checkpoints.last[0];
+      SensorValues prevESenseMovAvg = checkpoints.last[1];
       SensorValues prevDelta = checkpoints.last[2];
       SensorValues phoneDelta = phoneMovingAverage - prevPhoneMovAvg;
 
@@ -265,18 +278,13 @@ class ActivityClassifier {
             }
 
             if (checkpoints.length == 1) {
-              checkpoints.add([
-                phoneMovingAverage,
-                eSenseMovingAverage,
-                eSenseMovingAverage - prevESenseMovAvg
-              ]);
+              recordCheckpoint();
             } else {
               SensorValues eSenseDelta = eSenseMovingAverage - prevESenseMovAvg;
               if (checkpoints.length == 2) {
                 // direction change 1: sit-up halfway
                 if (prevDelta.x.sign != eSenseDelta.x.sign) {
-                  checkpoints.add(
-                      [phoneMovingAverage, eSenseMovingAverage, eSenseDelta]);
+                  recordCheckpoint(eSenseDelta);
                 }
               } else if (checkpoints.length == 3) {
                 // direction change 2: sit-up complete
@@ -287,8 +295,7 @@ class ActivityClassifier {
 
                   checkpoints.removeLast();
                   checkpoints.removeLast();
-                  checkpoints.add(
-                      [phoneMovingAverage, eSenseMovingAverage, eSenseDelta]);
+                  recordCheckpoint(eSenseDelta);
                 }
               }
             }
@@ -301,13 +308,11 @@ class ActivityClassifier {
             }
 
             if (checkpoints.length == 1) {
-              checkpoints
-                  .add([phoneMovingAverage, eSenseMovingAverage, phoneDelta]);
+              recordCheckpoint(phoneDelta);
             } else if (checkpoints.length == 2) {
               // direction change 1: push-up halfway
               if (prevDelta.y.sign != phoneDelta.y.sign) {
-                checkpoints
-                    .add([phoneMovingAverage, eSenseMovingAverage, phoneDelta]);
+                recordCheckpoint(phoneDelta);
               }
             } else if (checkpoints.length == 3) {
               // direction change 2: push-up complete
@@ -317,22 +322,20 @@ class ActivityClassifier {
 
                 checkpoints.removeLast();
                 checkpoints.removeLast();
-                checkpoints
-                    .add([phoneMovingAverage, eSenseMovingAverage, phoneDelta]);
+                recordCheckpoint(phoneDelta);
               }
             }
             break;
 
           case SQUATS:
-          // knees held too far back, probably crooked pullups
+            // knees held too far back, probably crooked pullups
             if (phoneMovingAverage.y < -0.5) {
               compatibleActivities.remove(SQUATS);
               continue;
             }
 
             if (checkpoints.length == 1) {
-              checkpoints
-                  .add([phoneMovingAverage, eSenseMovingAverage, phoneDelta]);
+              recordCheckpoint(phoneDelta);
             } else if (checkpoints.length == 2) {
               // direction change 1: squat halfway
               if (prevDelta.y.sign != phoneDelta.y.sign) {
@@ -340,8 +343,7 @@ class ActivityClassifier {
                 if (phoneDelta.y.sign < 0 &&
                     phoneMovingAverage.y + 0.125 > phoneMovingAverage.x &&
                     phoneMovingAverage.y > phoneMovingAverage.z) {
-                  checkpoints.add(
-                      [phoneMovingAverage, eSenseMovingAverage, phoneDelta]);
+                  recordCheckpoint(phoneDelta);
                 } else {
                   compatibleActivities.remove(SQUATS);
                   continue;
@@ -360,8 +362,7 @@ class ActivityClassifier {
 
                   checkpoints.removeLast();
                   checkpoints.removeLast();
-                  checkpoints.add(
-                      [phoneMovingAverage, eSenseMovingAverage, phoneDelta]);
+                  recordCheckpoint(phoneDelta);
                 } else {
                   compatibleActivities.remove(SQUATS);
                   continue;
@@ -378,13 +379,11 @@ class ActivityClassifier {
             }
 
             if (checkpoints.length == 1) {
-              checkpoints
-                  .add([phoneMovingAverage, eSenseMovingAverage, phoneDelta]);
+              recordCheckpoint(phoneDelta);
             } else if (checkpoints.length == 2) {
               // direction change 1: pull-up halfway
               if (prevDelta.y.sign != phoneDelta.y.sign) {
-                checkpoints
-                    .add([phoneMovingAverage, eSenseMovingAverage, phoneDelta]);
+                recordCheckpoint(phoneDelta);
               }
             } else if (checkpoints.length == 3) {
               // direction change 2: pull-up complete
@@ -397,8 +396,7 @@ class ActivityClassifier {
 
                   checkpoints.removeLast();
                   checkpoints.removeLast();
-                  checkpoints.add(
-                      [phoneMovingAverage, eSenseMovingAverage, phoneDelta]);
+                  recordCheckpoint(phoneDelta);
                 } else {
                   compatibleActivities.remove(PULLUPS);
                   continue;
