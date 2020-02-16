@@ -202,8 +202,8 @@ class _HomePageState extends State<HomePage> {
 
       // TODO start listening to sensor data + classify for activity
       if (_activitySubscription == null) {
-        _activitySubscription = listenToActivityEvents((CombinedSensorEvent event) {
-          print(event);
+        _activitySubscription = listenToActivityEvents((String activity) {
+          print(activity);
         });
       } else {
         _activitySubscription.resume();

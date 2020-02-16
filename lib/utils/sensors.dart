@@ -1,9 +1,22 @@
 import 'dart:async';
 import 'dart:collection';
-import 'dart:math';
 
 import 'package:esense_flutter/esense.dart';
 import 'package:sensors/sensors.dart';
+
+ActivitySubscription listenToActivityEvents(Function(String) onActivity) {
+  var subscription = ActivitySubscription(onActivity);
+
+  subscription.phoneSubscription =
+      accelerometerEvents.listen(subscription.onPhoneData);
+  subscription.phoneSubscriptionIsPaused = false;
+
+  if (ESenseManager.connected) {
+    subscription.eSenseSubscription =
+        ESenseManager.sensorEvents.listen(subscription.oneSenseData);
+  }
+  return subscription;
+}
 
 class SensorValues {
   double x;
@@ -12,6 +25,7 @@ class SensorValues {
   void Function() onUpdate;
 
   SensorValues(this.x, this.y, this.z, [this.onUpdate]);
+
   SensorValues.fromList(List list, [this.onUpdate]) {
     this.x = list[0];
     this.y = list[1];
@@ -27,9 +41,11 @@ class SensorValues {
 
   toList() => [this.x, this.y, this.z];
 
-  SensorValues operator +(SensorValues other) => SensorValues(this.x + other.x, this.y + other.y, this.z + other.z);
+  SensorValues operator +(SensorValues other) =>
+      SensorValues(this.x + other.x, this.y + other.y, this.z + other.z);
 
-  SensorValues operator -(SensorValues other) => SensorValues(this.x - other.x, this.y - other.y, this.z - other.z);
+  SensorValues operator -(SensorValues other) =>
+      SensorValues(this.x - other.x, this.y - other.y, this.z - other.z);
 
   SensorValues operator /(number) => SensorValues(this.x / (number as double),
       this.y / (number as double), this.z / (number as double));
@@ -39,6 +55,7 @@ class SensorValues {
   bool operator >(other) {
     return this.x > other.x || this.y > other.y || this.z > other.z;
   }
+
   bool operator ==(other) {
     return this.x == other.x && this.y == other.y && this.z == other.z;
   }
@@ -133,27 +150,16 @@ class ActivitySubscription {
   }
 }
 
-ActivitySubscription listenToActivityEvents(Function onActivity) {
-  var subscription = ActivitySubscription(onActivity);
+const String NEUTRAL = null;
+const String SQUATS = 'Squats';
+const String SITUPS = 'Sit-ups';
+const String PUSHUPS = 'Push-ups';
+const String PULLUPS = 'Pull-ups';
 
-  subscription.phoneSubscription =
-      accelerometerEvents.listen(subscription.onPhoneData);
-  subscription.phoneSubscriptionIsPaused = false;
-
-  if (ESenseManager.connected) {
-    subscription.eSenseSubscription =
-        ESenseManager.sensorEvents.listen(subscription.oneSenseData);
-  }
-  return subscription;
-}
-
-class Activity {
-  Activity(this.name, this.scope);
-
-  String name;
-  bool inProgress = false;
-  List<CombinedSensorEvent> scope = List<CombinedSensorEvent>();
-}
+const String STANDING = 'Standing';
+const String CHEST_UP = 'Chest Up';
+const String CHEST_DOWN = 'Chest Down';
+const String KNEES_BENT = 'Knees Bent';
 
 class ActivityClassifier {
   ActivityClassifier(this.onActivity);
@@ -167,41 +173,241 @@ class ActivityClassifier {
   double phoneLowpassThreshold = 0.3;
   SensorValues phoneMovingAverage;
 
-  Activity currentActivity;
+  String bodyPosture;
+  List<String> compatibleActivities = List();
 
-  void Function(ActivityClassifier) onActivity;
+  void Function(String) onActivity;
+
+  List<List<dynamic>> checkpoints = List();
+
+  void setPosture() {
+    if (phoneMovingAverage.x + 0.3 > phoneMovingAverage.z &&
+        phoneMovingAverage.z > phoneMovingAverage.y)
+      bodyPosture = STANDING;
+    else if (phoneMovingAverage.y + 0.125 > phoneMovingAverage.x &&
+        phoneMovingAverage.x > phoneMovingAverage.z)
+      bodyPosture = CHEST_UP;
+    else if (phoneMovingAverage.z > phoneMovingAverage.y &&
+        phoneMovingAverage.y > phoneMovingAverage.x)
+      bodyPosture = CHEST_DOWN;
+    else if (phoneMovingAverage.x > phoneMovingAverage.y &&
+        phoneMovingAverage.y > phoneMovingAverage.z) bodyPosture = KNEES_BENT;
+
+    bodyPosture = null;
+  }
 
   void push(List<CombinedSensorEvent> scope) {
-    var result = scope
-        .reversed
-        .take(eSenseWindowSize)
-        .map((event) => event.eSense)
-        .reduce((a,b) => a+b) / (phoneWindowSize);
+    var result = scope.reversed
+            .take(eSenseWindowSize)
+            .map((event) => event.eSense)
+            .reduce((a, b) => a + b) /
+        (eSenseWindowSize);
 
     // eSense data changed
-    if ((result - phoneMovingAverage).abs() > phoneLowpassThreshold) {
-      phoneMovingAverage = result;
+    bool anyChange = false;
+    if (eSenseMovingAverage == null ||
+        (result - eSenseMovingAverage).abs() > eSenseLowpassThreshold) {
+      eSenseMovingAverage = result;
+      anyChange = true;
+    }
 
-    } else {
-      result = scope
-          .reversed
-          .take(phoneWindowSize)
-          .map((event) => event.phone)
-          .reduce((a,b) => a+b) / (phoneWindowSize);
+    if (phoneMovingAverage == null || !anyChange) {
+      result = scope.reversed
+              .take(phoneWindowSize)
+              .map((event) => event.phone)
+              .reduce((a, b) => a + b) /
+          (phoneWindowSize);
 
       // phone data changed
       if ((result - phoneMovingAverage).abs() > phoneLowpassThreshold) {
         phoneMovingAverage = result;
-
-      // no change
-      } else {
-        return;
+        setPosture();
       }
     }
 
     // something changed => check for activity
-    classifyActivity();
+    if (anyChange) classifyActivity();
   }
 
-  void classifyActivity() {}
+  void classifyActivity() {
+    if (compatibleActivities.length == 0) {
+      onActivity(NEUTRAL);
+      checkpoints.clear();
+
+      switch (bodyPosture) {
+        case STANDING:
+          compatibleActivities.addAll([PULLUPS, SQUATS]);
+          break;
+
+        case CHEST_DOWN:
+          compatibleActivities.add(PUSHUPS);
+          break;
+
+        case CHEST_UP:
+          compatibleActivities.add(SITUPS);
+          break;
+        default:
+          return;
+      }
+      checkpoints.add([phoneMovingAverage, eSenseMovingAverage, 0]);
+    } else {
+      SensorValues prevESenseMovAvg = checkpoints.last[0];
+      SensorValues prevPhoneMovAvg = checkpoints.last[1];
+      SensorValues prevDelta = checkpoints.last[2];
+      SensorValues phoneDelta = phoneMovingAverage - prevPhoneMovAvg;
+
+      for (var activity in compatibleActivities.toList()) {
+        switch (activity) {
+          case SITUPS:
+            if (bodyPosture != CHEST_UP) {
+              compatibleActivities.remove(SITUPS);
+              continue;
+            }
+
+            if (checkpoints.length == 1) {
+              checkpoints.add([
+                phoneMovingAverage,
+                eSenseMovingAverage,
+                eSenseMovingAverage - prevESenseMovAvg
+              ]);
+            } else {
+              SensorValues eSenseDelta = eSenseMovingAverage - prevESenseMovAvg;
+              if (checkpoints.length == 2) {
+                // direction change 1: sit-up halfway
+                if (prevDelta.x.sign != eSenseDelta.x.sign) {
+                  checkpoints.add(
+                      [phoneMovingAverage, eSenseMovingAverage, eSenseDelta]);
+                }
+              } else if (checkpoints.length == 3) {
+                // direction change 2: sit-up complete
+                if (prevDelta.x.sign != eSenseDelta.x.sign) {
+                  // sit-ups confirmed
+                  compatibleActivities = [SITUPS];
+                  onActivity(SITUPS);
+
+                  checkpoints.removeLast();
+                  checkpoints.removeLast();
+                  checkpoints.add(
+                      [phoneMovingAverage, eSenseMovingAverage, eSenseDelta]);
+                }
+              }
+            }
+            break;
+
+          case PUSHUPS:
+            if (bodyPosture != CHEST_DOWN) {
+              compatibleActivities.remove(PUSHUPS);
+              continue;
+            }
+
+            if (checkpoints.length == 1) {
+              checkpoints
+                  .add([phoneMovingAverage, eSenseMovingAverage, phoneDelta]);
+            } else if (checkpoints.length == 2) {
+              // direction change 1: push-up halfway
+              if (prevDelta.y.sign != phoneDelta.y.sign) {
+                checkpoints
+                    .add([phoneMovingAverage, eSenseMovingAverage, phoneDelta]);
+              }
+            } else if (checkpoints.length == 3) {
+              // direction change 2: push-up complete
+              if (prevDelta.y.sign != phoneDelta.y.sign) {
+                compatibleActivities = [PUSHUPS];
+                onActivity(PUSHUPS);
+
+                checkpoints.removeLast();
+                checkpoints.removeLast();
+                checkpoints
+                    .add([phoneMovingAverage, eSenseMovingAverage, phoneDelta]);
+              }
+            }
+            break;
+
+          case SQUATS:
+          // knees held too far back, probably crooked pullups
+            if (phoneMovingAverage.y < -0.5) {
+              compatibleActivities.remove(SQUATS);
+              continue;
+            }
+
+            if (checkpoints.length == 1) {
+              checkpoints
+                  .add([phoneMovingAverage, eSenseMovingAverage, phoneDelta]);
+            } else if (checkpoints.length == 2) {
+              // direction change 1: squat halfway
+              if (prevDelta.y.sign != phoneDelta.y.sign) {
+                // ensure knees are bent 90 degrees when going back up
+                if (phoneDelta.y.sign < 0 &&
+                    phoneMovingAverage.y + 0.125 > phoneMovingAverage.x &&
+                    phoneMovingAverage.y > phoneMovingAverage.z) {
+                  checkpoints.add(
+                      [phoneMovingAverage, eSenseMovingAverage, phoneDelta]);
+                } else {
+                  compatibleActivities.remove(SQUATS);
+                  continue;
+                }
+              }
+            } else if (checkpoints.length == 3) {
+              // direction change 2: squat complete
+              if (prevDelta.y.sign != phoneDelta.y.sign) {
+                // ensure knees are bent 90 degrees when going back up
+                if (phoneDelta.y.sign < 0 &&
+                    phoneMovingAverage.y + 0.125 > phoneMovingAverage.x &&
+                    phoneMovingAverage.y > phoneMovingAverage.z) {
+                  // activity confirmed, remove others
+                  compatibleActivities = [SQUATS];
+                  onActivity(SQUATS);
+
+                  checkpoints.removeLast();
+                  checkpoints.removeLast();
+                  checkpoints.add(
+                      [phoneMovingAverage, eSenseMovingAverage, phoneDelta]);
+                } else {
+                  compatibleActivities.remove(SQUATS);
+                  continue;
+                }
+              }
+            }
+            break;
+
+          case PULLUPS:
+            // knees bent too far, probably squats
+            if (phoneMovingAverage.y > -0.5) {
+              compatibleActivities.remove(PULLUPS);
+              continue;
+            }
+
+            if (checkpoints.length == 1) {
+              checkpoints
+                  .add([phoneMovingAverage, eSenseMovingAverage, phoneDelta]);
+            } else if (checkpoints.length == 2) {
+              // direction change 1: pull-up halfway
+              if (prevDelta.y.sign != phoneDelta.y.sign) {
+                checkpoints
+                    .add([phoneMovingAverage, eSenseMovingAverage, phoneDelta]);
+              }
+            } else if (checkpoints.length == 3) {
+              // direction change 2: pull-up complete
+              if (prevDelta.y.sign != phoneDelta.y.sign) {
+                if (phoneDelta.y.sign < 0 &&
+                    phoneMovingAverage.y + 0.75 > phoneMovingAverage.z) {
+                  // activity confirmed, remove others
+                  compatibleActivities = [PULLUPS];
+                  onActivity(PULLUPS);
+
+                  checkpoints.removeLast();
+                  checkpoints.removeLast();
+                  checkpoints.add(
+                      [phoneMovingAverage, eSenseMovingAverage, phoneDelta]);
+                } else {
+                  compatibleActivities.remove(PULLUPS);
+                  continue;
+                }
+              }
+            }
+            break;
+        }
+      }
+    }
+  }
 }
