@@ -181,7 +181,7 @@ class _HomePageState extends State<HomePage> {
             _summaries,
             setCurrentPage,
             _currentActivity,
-            ConnectionSummary(key, _deviceStatus, _voltage, _button, _event),
+            ConnectionSummary(key, _deviceStatus, _voltage, _button, _currentActivity),
           ),
           ActionsPanel(_connectESense, _startWorkout, _finishWorkout,
               _tryingToConnect, _currentSummary),
@@ -204,6 +204,10 @@ class _HomePageState extends State<HomePage> {
       if (_activitySubscription == null) {
         _activitySubscription = listenToActivityEvents((String activity) {
           print(activity);
+          setState(() {
+            _currentActivity = activity;
+            _currentSummary.counters[activity] += 1;
+          });
         });
       } else {
         _activitySubscription.resume();

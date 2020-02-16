@@ -41,7 +41,7 @@ class ConnectionSummary extends StatelessWidget {
             button,
           ),
           SensorDataDisplay(
-            'Event Type:',
+            'Activity Type:',
             event,
           ),
         ]));
