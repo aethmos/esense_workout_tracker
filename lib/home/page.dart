@@ -19,7 +19,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   Key key;
-  SensorSubscription _sensorSubscription;
+  ActivitySubscription _activitySubscription;
   StreamSubscription _summarySubscription;
   String _deviceName = 'eSense-0151';
   double _voltage = -1;
@@ -43,7 +43,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void dispose() {
     _carouselController.dispose();
-    _sensorSubscription?.cancel();
+    _activitySubscription?.cancel();
     _summarySubscription?.cancel();
     ESenseManager.disconnect();
     super.dispose();
@@ -201,12 +201,12 @@ class _HomePageState extends State<HomePage> {
           duration: Duration(milliseconds: 1000), curve: ElasticOutCurve(1));
 
       // TODO start listening to sensor data + classify for activity
-      if (_sensorSubscription == null) {
-        _sensorSubscription = listenToSensorEvents((CombinedSensorEvent event) {
+      if (_activitySubscription == null) {
+        _activitySubscription = listenToActivityEvents((CombinedSensorEvent event) {
           print(event);
         });
       } else {
-        _sensorSubscription.resume();
+        _activitySubscription.resume();
       }
     }
   }
@@ -216,7 +216,7 @@ class _HomePageState extends State<HomePage> {
       setState(() {
         _workoutInProgress = false;
       });
-      _sensorSubscription?.pause();
+      _activitySubscription?.pause();
 
       // scroll relevant page into view
       _carouselController.animateToPage(Summary.totalCount - 1,
