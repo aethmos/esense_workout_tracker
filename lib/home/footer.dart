@@ -7,11 +7,15 @@ import 'package:one_up/model/summary.dart';
 
 
 class ActionsPanel extends StatelessWidget {
-  ActionsPanel(this.connectToESense, this.startWorkout, this.finishWorkout, this.workoutInProgress, this.currentSummary);
+  ActionsPanel(this.connectToESense, this.startWorkout, this.finishWorkout, this.workoutInProgress, this.currentSummary, this.resetSummary, this.textToSpeechEnabled, this.setTextToSpeech);
   final void Function() connectToESense;
   final void Function() startWorkout;
   final void Function() finishWorkout;
+  final void Function() resetSummary;
   final bool workoutInProgress;
+  final bool textToSpeechEnabled;
+  final void Function(bool) setTextToSpeech;
+
   final Summary currentSummary;
 
   @override
@@ -51,7 +55,7 @@ class ActionsPanel extends StatelessWidget {
           Expanded(
             flex: 1,
             child: GestureDetector(
-              onTap: () => currentSummary.reset().submit(),
+              onTap: resetSummary,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -91,10 +95,12 @@ class ActionsPanel extends StatelessWidget {
           ),
           Expanded(
               flex: 1,
-              child: GestureDetector(
-                  onTap: null,
-                  child: Icon(Icons.edit,
-                      color: colorFgBold, size: 30))),
+              child:
+              GestureDetector(
+                  onTap: () => setTextToSpeech(!textToSpeechEnabled),
+                  child: Icon(textToSpeechEnabled ? Icons.record_voice_over : Icons.volume_off,
+                      color: colorFgBold, size: 30))
+          ),
         ],
       )
           : GestureDetector(

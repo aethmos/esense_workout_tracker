@@ -2,6 +2,17 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
+const String NEUTRAL = null;
+const String SQUATS = 'Squats';
+const String SITUPS = 'Sit-ups';
+const String PUSHUPS = 'Push-ups';
+const String PULLUPS = 'Pull-ups';
+
+const String STANDING = 'Standing';
+const String CHEST_UP = 'Chest Up';
+const String CHEST_DOWN = 'Chest Down';
+const String KNEES_BENT = 'Knees Bent';
+
 final colorBg = Color(0xFFEAEAEA);
 
 final colorFgLight = Color(0xFF707070);

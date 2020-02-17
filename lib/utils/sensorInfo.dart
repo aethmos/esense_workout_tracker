@@ -26,7 +26,10 @@ class ConnectionSummary extends StatelessWidget {
         ),
         margin: EdgeInsets.all(20),
         padding: EdgeInsets.all(25),
-        child: Column(children: <Widget>[
+        child: Column(
+            mainAxisSize: MainAxisSize.max,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: <Widget>[
           Icon(Icons.network_check),
           SensorDataDisplay(
             'Device Status:',
@@ -34,7 +37,7 @@ class ConnectionSummary extends StatelessWidget {
           ),
           SensorDataDisplay(
             'Battery Level:',
-            '${(min(voltage / 4000, 1) * 100).round()}%',
+            '${(min(voltage / 4.2, 1) * 100).round()}%',
           ),
           SensorDataDisplay(
             'Button Pressed:',

@@ -23,6 +23,9 @@ dependencies:
   # read phone's accelerometer data
   sensors:
 
+  # read phone's bluetooth status
+  flutter_blue: ^0.6.3+1
+
   # connect to eSense earable device and read sensor data
   esense_flutter: ^0.2.0+2
 
@@ -37,6 +40,9 @@ dependencies:
 
   # connect to Firestore database
   cloud_firestore:
+
+  # provide audio feedback while phone is in user's pocket
+  flutter_tts:
 
 
 dev_dependencies:

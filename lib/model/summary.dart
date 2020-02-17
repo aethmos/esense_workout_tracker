@@ -1,5 +1,6 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:one_up/vars/constants.dart';
 
 class Summary {
   static String collectionName = 'summaries';
@@ -22,10 +23,10 @@ class Summary {
 
   factory Summary.create() {
     return Summary(null, DateTime.now(), {
-      'Sit-ups': 0,
-      'Push-ups': 0,
-      'Pull-ups': 0,
-      'Squats': 0,
+      SITUPS: 0,
+      PUSHUPS: 0,
+      PULLUPS: 0,
+      SQUATS: 0,
     });
   }
 
@@ -66,7 +67,10 @@ class Summary {
   }
 
   Summary reset() {
-    this.counters.keys.map((key) => this.counters[key] = 0);
+    print('resetting summary for date: ${humanReadableDate.format(this.date)}');
+    for (var key in this.counters.keys) {
+      this.counters[key] = 0;
+    }
     return this;
   }
 
@@ -85,5 +89,22 @@ class Summary {
     return (this.date.year == today.year &&
         this.date.month == today.month &&
         this.date.day == today.day);
+  }
+
+  String toAccessibleString() {
+    String result = '';
+    var entries = this.counters.entries.where((entry) => entry.value > 0);
+    for (var entry in entries) {
+      if (result != '') {
+        if (entry.key == entries.last.key)
+          result += ' and ';
+        else
+          result += ', ';
+      }
+      result += '${entry.value} ${entry.key}';
+    }
+    if (result == '')
+      result = 'no exercise';
+    return result;
   }
 }

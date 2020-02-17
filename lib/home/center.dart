@@ -86,34 +86,6 @@ class SummaryCard extends StatefulWidget {
 }
 
 class _SummaryCardState extends State<SummaryCard> {
-  Summary _summary;
-
-  @override
-  void initState() {
-    setState(() {
-      _summary = widget.summary;
-    });
-    super.initState();
-  }
-
-  void resetCounters() {
-    setState(() {
-      _summary = widget.summary.reset();
-    });
-  }
-
-  void incrementActivity(String label) {
-    setState(() {
-      _summary = widget.summary.increment(label);
-    });
-  }
-
-  void decrementActivity(String label) {
-    setState(() {
-      _summary = widget.summary.decrement(label);
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -139,7 +111,7 @@ class _SummaryCardState extends State<SummaryCard> {
                 style: textHeading,
               ),
               SizedBox(width: 20),
-              _calendarTile(_summary.date)
+              _calendarTile(widget.summary.date)
             ]),
         Expanded(
           child: Container(
@@ -147,7 +119,7 @@ class _SummaryCardState extends State<SummaryCard> {
             child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.center,
-                children: _summary.counters.entries
+                children: widget.summary.counters.entries
                     .map((entry) =>
                     ActivityCounter(entry.key.toString(), entry.value, widget.currentActivity == entry.key.toString()))
                     .toList() ??

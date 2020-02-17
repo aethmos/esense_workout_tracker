@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:ui';
 
 import 'package:esense_flutter/esense.dart';
@@ -8,13 +9,14 @@ import 'package:one_up/vars/constants.dart';
 
 
 class HeaderPanel extends StatelessWidget {
-  HeaderPanel(this.eSenseName, this.setESenseName, this.connectToESense, this.tryingToConnect, this.isConnected);
+  HeaderPanel(this.eSenseName, this.setESenseName, this.connectToESense, this.tryingToConnect, this.isConnected, this.voltage);
 
   final String eSenseName;
   final void Function(String eSenseName) setESenseName;
   final void Function() connectToESense;
   final bool tryingToConnect;
   final bool isConnected;
+  final double voltage;
 
   void connect(_) => connectToESense;
 
@@ -68,7 +70,7 @@ class HeaderPanel extends StatelessWidget {
                             color: colorGood,
                             size: textSubheading.fontSize),
                         Text(
-                          'Connected',
+                          'Connected' + (voltage > 0 ? ' - ${(min(voltage / 4.2, 1) * 100).round()}%' : ''),
                           style: textSubheading,
                         )
                       ]

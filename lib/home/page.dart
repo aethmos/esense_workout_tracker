@@ -4,11 +4,12 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:esense_flutter/esense.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_blue/flutter_blue.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:one_up/home/center.dart';
 import 'package:one_up/home/footer.dart';
 import 'package:one_up/home/header.dart';
 import 'package:one_up/model/summary.dart';
-import 'package:one_up/utils/sensorInfo.dart';
 import 'package:one_up/utils/sensors.dart';
 import 'package:one_up/vars/constants.dart';
 
@@ -19,19 +20,18 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   Key key;
+  FlutterBlue flutterBlue = FlutterBlue.instance;
   ActivitySubscription _activitySubscription;
   StreamSubscription _summarySubscription;
   String _deviceName = 'eSense-0151';
   double _voltage = -1;
   String _deviceStatus = '';
-  String _event = '';
   String _button = 'not pressed';
-  bool _sampling = false;
+  bool textToSpeechEnabled = true;
 
   bool _tryingToConnect = false;
   List<Summary> _summaries = new List();
   Summary _currentSummary;
-  PageController _carouselController;
 
 //  bool _currentSummaryInView = true;
   bool _workoutInProgress = false;
@@ -39,10 +39,10 @@ class _HomePageState extends State<HomePage> {
   int _currentPage = 0;
 
   String _currentActivity;
+  FlutterTts textToSpeech;
 
   @override
   void dispose() {
-    _carouselController.dispose();
     _activitySubscription?.cancel();
     _summarySubscription?.cancel();
     ESenseManager.disconnect();
@@ -52,19 +52,20 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     key = UniqueKey();
+    textToSpeech = FlutterTts();
+    textToSpeech.setSpeechRate(0.5);
+    textToSpeech.setPitch(0.1);
     _fetchSummaries();
     _connectESense();
     super.initState();
   }
 
   void _fetchSummaries() {
+    _summarySubscription?.cancel();
     _summarySubscription =
         Summary.collection.snapshots().listen((QuerySnapshot snapshot) {
       var summaries = snapshot.documents
-          .map((DocumentSnapshot document) {
-            var summary = new Summary.fromDocument(document);
-            return summary;
-          })
+          .map((DocumentSnapshot doc) => new Summary.fromDocument(doc))
           .where((summary) =>
               summary.isFromToday ||
               summary.counters.values.reduce((a, b) => a + b) > 0)
@@ -83,6 +84,13 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _currentSummary = currentSummary;
       _summaries = summaries.reversed.toList();
+    });
+  }
+
+  void setTextToSpeech([bool value]) {
+    // add an empty summary for today if there is none
+    setState(() {
+      textToSpeechEnabled = value ?? !textToSpeechEnabled;
     });
   }
 
@@ -117,19 +125,29 @@ class _HomePageState extends State<HomePage> {
       });
     });
 
-    setState(() {
-      _tryingToConnect = true;
-    });
+    if (await flutterBlue.isOn) {
+      setState(() {
+        _tryingToConnect = true;
+      });
 
-    con = await ESenseManager.connect(_deviceName);
+      con = await ESenseManager.connect(_deviceName);
 
-    setState(() {
-      _deviceStatus = con ? 'connecting to $_deviceName' : 'connection failed';
-      _tryingToConnect = false;
-    });
+      setState(() {
+        _deviceStatus =
+            con ? 'connecting to $_deviceName' : 'connection failed';
+        _tryingToConnect = false;
+      });
+    }
   }
 
+  Timer batteryTimer;
+
   void _listenToESenseEvents() async {
+    batteryTimer?.cancel();
+    batteryTimer = Timer.periodic(Duration(seconds: 10), (_) {
+      if (ESenseManager.connected) ESenseManager.getBatteryVoltage();
+    });
+
     ESenseManager.eSenseEvents.listen((event) {
       print('ESENSE event: $event');
 
@@ -143,8 +161,10 @@ class _HomePageState extends State<HomePage> {
             break;
           case ButtonEventChanged:
             if ((event as ButtonEventChanged).pressed) {
-              _button = 'pressed';
-              _workoutInProgress ? _finishWorkout() : _startWorkout();
+              if (_button != 'pressed') {
+                _button = 'pressed';
+                _workoutInProgress ? _finishWorkout() : _startWorkout();
+              }
             } else {
               _button = 'not pressed';
             }
@@ -175,40 +195,80 @@ class _HomePageState extends State<HomePage> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
           HeaderPanel(_deviceName, setESenseName, _connectESense,
-              _tryingToConnect, ESenseManager.connected),
+              _tryingToConnect, ESenseManager.connected, _voltage),
           SummaryCarousel(
             key,
             _summaries,
             setCurrentPage,
             _currentActivity,
-            ConnectionSummary(key, _deviceStatus, _voltage, _button, _currentActivity),
+//            ConnectionSummary(
+//                key, _deviceStatus, _voltage, _button, _currentActivity),
           ),
-          ActionsPanel(_connectESense, _startWorkout, _finishWorkout,
-              _tryingToConnect, _currentSummary),
+          ActionsPanel(
+              _connectESense,
+              _startWorkout,
+              _finishWorkout,
+              _workoutInProgress,
+              _currentSummary,
+              _resetActivities,
+              textToSpeechEnabled,
+              setTextToSpeech),
         ],
       ),
     );
   }
 
+  void setCurrentPage(int page) {
+    setState(() {
+      _currentPage = page;
+    });
+  }
+
+  void _resetActivities() {
+    _currentSummary.reset().submit().whenComplete(_fetchSummaries);
+  }
+
+  int currentActivityCount = 0;
+
+  void handleActivity(String activity) {
+    print('Activity: $activity');
+    bool newActivity = _currentActivity != activity;
+    setState(() {
+      _currentActivity = activity;
+      if (activity != null) _currentSummary.counters[activity] += 1;
+    });
+    if (textToSpeechEnabled) {
+      if (activity != null) {
+        currentActivityCount += 1;
+        if (newActivity) {
+          textToSpeech.speak('$activity');
+        } else {
+          textToSpeech.speak('$currentActivityCount');
+        }
+      } else {
+        textToSpeech.speak('Resting');
+      }
+    }
+  }
+
+  // delay just enough to avoid native beep from earable button press
+  Future<void> speakDelayed(String text) async {
+    Timer.periodic(Duration(milliseconds: 1000), (timer) {
+      timer.cancel();
+      textToSpeech.speak(text);
+    });
+  }
+
   void _startWorkout() {
+    print('recording workout');
+    if (textToSpeechEnabled) speakDelayed('Recording workout');
     if (!_workoutInProgress) {
       setState(() {
         _workoutInProgress = true;
       });
 
-      // scroll relevant page into view
-      _carouselController.animateToPage(Summary.totalCount - 1,
-          duration: Duration(milliseconds: 1000), curve: ElasticOutCurve(1));
-
-      // TODO start listening to sensor data + classify for activity
       if (_activitySubscription == null) {
-        _activitySubscription = listenToActivityEvents((String activity) {
-          print(activity);
-          setState(() {
-            _currentActivity = activity;
-            _currentSummary.counters[activity] += 1;
-          });
-        });
+        _activitySubscription = ActivitySubscription(handleActivity);
       } else {
         _activitySubscription.resume();
       }
@@ -216,27 +276,18 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _finishWorkout() {
-    if (!_workoutInProgress) {
+    print('saving workout');
+    if (textToSpeechEnabled)
+      speakDelayed(
+          'Saving workout. Today, you have done ${_currentSummary.toAccessibleString()}');
+    if (_workoutInProgress) {
       setState(() {
         _workoutInProgress = false;
       });
       _activitySubscription?.pause();
 
-      // scroll relevant page into view
-      _carouselController.animateToPage(Summary.totalCount - 1,
-          duration: Duration(milliseconds: 1000), curve: ElasticOutCurve(1));
-
       // submit results to database
-      _currentSummary.submit();
-
-      // TODO stop listening to sensor data
-
+      _currentSummary.submit().whenComplete(_fetchSummaries);
     }
-  }
-
-  void setCurrentPage(int page) {
-    setState(() {
-      _currentPage = page;
-    });
   }
 }
