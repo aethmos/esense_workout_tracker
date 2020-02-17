@@ -241,6 +241,7 @@ class _HomePageState extends State<HomePage> {
       if (activity != null) {
         currentActivityCount += 1;
         if (newActivity) {
+          currentActivityCount = 0;
           textToSpeech.speak('$activity');
         } else {
           textToSpeech.speak('$currentActivityCount');
