@@ -10,7 +10,7 @@ import 'package:one_up/home/center.dart';
 import 'package:one_up/home/footer.dart';
 import 'package:one_up/home/header.dart';
 import 'package:one_up/model/summary.dart';
-import 'package:one_up/utils/sensors.dart';
+import 'package:one_up/utils/stream.dart';
 import 'package:one_up/vars/constants.dart';
 
 class HomePage extends StatefulWidget {
@@ -20,26 +20,38 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   Key key;
+
+  // connection
   FlutterBlue flutterBlue = FlutterBlue.instance;
-  ActivitySubscription _activitySubscription;
-  StreamSubscription _summarySubscription;
   String _deviceName = 'eSense-0151';
   double _voltage = -1;
-  String _deviceStatus = '';
   String _button = 'not pressed';
-  bool textToSpeechEnabled = true;
-
   bool _tryingToConnect = false;
+  Timer batteryTimer;
+
+  // data
+  StreamSubscription _summarySubscription;
   List<Summary> _summaries = new List();
   Summary _currentSummary;
 
-//  bool _currentSummaryInView = true;
+  // workout
+  ActivitySubscription _activitySubscription;
   bool _workoutInProgress = false;
-
-  int _currentPage = 0;
-
   String _currentActivity;
+  int currentActivityRepCount = 0;
+
+  // TTS
   FlutterTts textToSpeech;
+  bool textToSpeechEnabled = true;
+
+  @override
+  void initState() {
+    key = UniqueKey();
+    _fetchSummaries();
+    _initTextToSpeech();
+    _connectESense();
+    super.initState();
+  }
 
   @override
   void dispose() {
@@ -47,17 +59,6 @@ class _HomePageState extends State<HomePage> {
     _summarySubscription?.cancel();
     ESenseManager.disconnect();
     super.dispose();
-  }
-
-  @override
-  void initState() {
-    key = UniqueKey();
-    textToSpeech = FlutterTts();
-    textToSpeech.setSpeechRate(0.5);
-    textToSpeech.setPitch(0.1);
-    _fetchSummaries();
-    _connectESense();
-    super.initState();
   }
 
   void _fetchSummaries() {
@@ -87,7 +88,13 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
-  void setTextToSpeech([bool value]) {
+  void _initTextToSpeech() {
+    textToSpeech = FlutterTts();
+    textToSpeech.setSpeechRate(0.5);
+    textToSpeech.setPitch(0.1);
+  }
+
+  void enableTextToSpeech([bool value]) {
     // add an empty summary for today if there is none
     setState(() {
       textToSpeechEnabled = value ?? !textToSpeechEnabled;
@@ -95,34 +102,10 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> _connectESense() async {
-    bool con = false;
-
     // if you want to get the connection events when connecting, set up the listener BEFORE connecting...
     ESenseManager.connectionEvents.listen((event) {
       print('CONNECTION event: $event');
-
-      // when we're connected to the eSense device, we can start listening to events from it
       if (event.type == ConnectionType.connected) _listenToESenseEvents();
-
-      setState(() {
-        switch (event.type) {
-          case ConnectionType.connected:
-            _deviceStatus = 'connected';
-            break;
-          case ConnectionType.unknown:
-            _deviceStatus = 'unknown';
-            break;
-          case ConnectionType.disconnected:
-            _deviceStatus = 'disconnected';
-            break;
-          case ConnectionType.device_found:
-            _deviceStatus = 'device_found';
-            break;
-          case ConnectionType.device_not_found:
-            _deviceStatus = 'device_not_found';
-            break;
-        }
-      });
     });
 
     if (await flutterBlue.isOn) {
@@ -130,17 +113,13 @@ class _HomePageState extends State<HomePage> {
         _tryingToConnect = true;
       });
 
-      con = await ESenseManager.connect(_deviceName);
+      await ESenseManager.connect(_deviceName);
 
       setState(() {
-        _deviceStatus =
-            con ? 'connecting to $_deviceName' : 'connection failed';
         _tryingToConnect = false;
       });
     }
   }
-
-  Timer batteryTimer;
 
   void _listenToESenseEvents() async {
     batteryTimer?.cancel();
@@ -199,10 +178,8 @@ class _HomePageState extends State<HomePage> {
           SummaryCarousel(
             key,
             _summaries,
-            setCurrentPage,
+            onPageChange,
             _currentActivity,
-//            ConnectionSummary(
-//                key, _deviceStatus, _voltage, _button, _currentActivity),
           ),
           ActionsPanel(
               _connectESense,
@@ -212,23 +189,21 @@ class _HomePageState extends State<HomePage> {
               _currentSummary,
               _resetActivities,
               textToSpeechEnabled,
-              setTextToSpeech),
+              enableTextToSpeech),
         ],
       ),
     );
   }
 
-  void setCurrentPage(int page) {
-    setState(() {
-      _currentPage = page;
-    });
+  void onPageChange(int page) {
+//    setState(() {
+//
+//    });
   }
 
   void _resetActivities() {
     _currentSummary.reset().submit().whenComplete(_fetchSummaries);
   }
-
-  int currentActivityCount = 0;
 
   void handleActivity(String activity) {
     print('Activity: $activity');
@@ -239,12 +214,12 @@ class _HomePageState extends State<HomePage> {
     });
     if (textToSpeechEnabled) {
       if (activity != null) {
-        currentActivityCount += 1;
+        currentActivityRepCount += 1;
         if (newActivity) {
-          currentActivityCount = 0;
+          currentActivityRepCount = 0;
           textToSpeech.speak('$activity');
         } else {
-          textToSpeech.speak('$currentActivityCount');
+          textToSpeech.speak('$currentActivityRepCount');
         }
       } else {
         textToSpeech.speak('Resting');
