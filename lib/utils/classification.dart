@@ -110,7 +110,7 @@ class ActivityClassifier {
           prepNextCheckpoint();
           break;
         case STANDING:
-          compatibleActivities = [PULLUPS];
+          compatibleActivities = [JUMPING_JACKS];
           prepNextCheckpoint();
           break;
         case CHEST_DOWN:
@@ -190,11 +190,8 @@ class ActivityClassifier {
         }
       }
 
-      if (compatibleActivities.contains(PULLUPS)) {
-        // knees bent too far, probably squats
-        if (phoneMovingAverage.z > 0.5) {
-          compatibleActivities.remove(PULLUPS);
-        } else if (checkpoints.length == 1) {
+      if (compatibleActivities.contains(JUMPING_JACKS)) {
+        if (checkpoints.length == 1) {
           prepNextCheckpoint(phoneDelta);
         } else if (checkpoints.length == 2) {
           if (prevDelta.y.sign != phoneDelta.y.sign) {
@@ -214,7 +211,7 @@ class ActivityClassifier {
         } else if (checkpoints.length == 5) {
           if (prevDelta.y.sign != phoneDelta.y.sign) {
             if ((phoneDelta.y - phoneDelta.x).abs() > 0.3) {
-              submitActivity(PULLUPS);
+              submitActivity(JUMPING_JACKS);
               checkpoints.removeLast();
               checkpoints.removeLast();
               checkpoints.removeLast();

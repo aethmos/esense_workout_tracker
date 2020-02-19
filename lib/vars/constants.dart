@@ -6,7 +6,7 @@ const String NEUTRAL = null;
 const String SQUATS = 'Squats';
 const String SITUPS = 'Sit-ups';
 const String PUSHUPS = 'Push-ups';
-const String PULLUPS = 'Pull-ups';
+const String JUMPING_JACKS = 'Jumping Jacks';
 
 const String STANDING = 'Standing';
 const String CHEST_UP = 'Chest Up';

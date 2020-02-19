@@ -25,7 +25,7 @@ class Summary {
     return Summary(null, DateTime.now(), {
       SITUPS: 0,
       PUSHUPS: 0,
-      PULLUPS: 0,
+      JUMPING_JACKS: 0,
       SQUATS: 0,
     });
   }
