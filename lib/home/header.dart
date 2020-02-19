@@ -99,7 +99,7 @@ class HeaderPanel extends StatelessWidget {
                     ),
                     child: Icon(
                       (isConnected)
-                          ? Icons.delete_outline
+                          ? Icons.phonelink_erase
                           : Icons.bluetooth_searching,
                       color: textHeading.color,
                       size: 25,

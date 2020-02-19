@@ -116,9 +116,8 @@ class _SummaryCardState extends State<SummaryCard> {
         Expanded(
           child: Container(
             width: 200,
-            child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
+            child: ListView(
+                scrollDirection: Axis.vertical,
                 children: widget.summary.counters.entries
                     .map((entry) =>
                     ActivityCounter(entry.key.toString(), entry.value, widget.currentActivity == entry.key.toString()))

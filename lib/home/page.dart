@@ -26,6 +26,7 @@ class _HomePageState extends State<HomePage> {
   String _deviceName = 'eSense-0151';
   double _voltage = -1;
   String _button = 'not pressed';
+  bool _isConnected = false;
   bool _tryingToConnect = false;
   Timer batteryTimer;
 
@@ -105,7 +106,16 @@ class _HomePageState extends State<HomePage> {
     // if you want to get the connection events when connecting, set up the listener BEFORE connecting...
     ESenseManager.connectionEvents.listen((event) {
       print('CONNECTION event: $event');
-      if (event.type == ConnectionType.connected) _listenToESenseEvents();
+      if (event.type == ConnectionType.connected) {
+        setState(() {
+          _isConnected = true;
+        });
+        _listenToESenseEvents();
+      } else {
+        setState(() {
+          _isConnected = false;
+        });
+      }
     });
 
     if (await flutterBlue.isOn) {
@@ -174,7 +184,7 @@ class _HomePageState extends State<HomePage> {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: <Widget>[
           HeaderPanel(_deviceName, setESenseName, _connectESense,
-              _tryingToConnect, ESenseManager.connected, _voltage),
+              _tryingToConnect, _isConnected, _voltage),
           SummaryCarousel(
             key,
             _summaries,
@@ -182,6 +192,7 @@ class _HomePageState extends State<HomePage> {
             _currentActivity,
           ),
           ActionsPanel(
+              _isConnected,
               _connectESense,
               _startWorkout,
               _finishWorkout,

@@ -7,7 +7,8 @@ import 'package:one_up/model/summary.dart';
 
 
 class ActionsPanel extends StatelessWidget {
-  ActionsPanel(this.connectToESense, this.startWorkout, this.finishWorkout, this.workoutInProgress, this.currentSummary, this.resetSummary, this.textToSpeechEnabled, this.setTextToSpeech);
+  ActionsPanel(this.isConnected, this.connectToESense, this.startWorkout, this.finishWorkout, this.workoutInProgress, this.currentSummary, this.resetSummary, this.textToSpeechEnabled, this.setTextToSpeech);
+  final bool isConnected;
   final void Function() connectToESense;
   final void Function() startWorkout;
   final void Function() finishWorkout;
@@ -29,7 +30,7 @@ class ActionsPanel extends StatelessWidget {
         borderRadius: borderRadius,
       ),
       margin: EdgeInsets.only(bottom: 40),
-      child: (ESenseManager.connected)
+      child: (isConnected)
           ? Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -46,8 +47,8 @@ class ActionsPanel extends StatelessWidget {
               child: GestureDetector(
                 onTap: () => finishWorkout(),
                 child: Center(
-                  child: Icon(Icons.check,
-                      color: colorFgBold, size: 60),
+                  child: Icon(Icons.stop,
+                      color: Colors.red, size: 60),
                 ),
               )),
         ]
@@ -56,23 +57,8 @@ class ActionsPanel extends StatelessWidget {
             flex: 1,
             child: GestureDetector(
               onTap: resetSummary,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: <Widget>[
-                  Container(
-                    transform: Matrix4.translationValues(10, 1, 0),
-                    child: Icon(Icons.exposure_zero,
-                        color: colorFgBold, size: 30),
-                  ),
-                  Text('.', style: textHeading),
-                  Container(
-                    transform: Matrix4.translationValues(-11, 1, 0),
-                    child: Icon(Icons.exposure_zero,
-                        color: colorFgBold, size: 30),
-                  )
-                ],
-              ),
+              child: Icon(Icons.delete_outline,
+                  color: colorFgBold, size: 30),
             ),
           ),
           GestureDetector(
@@ -86,12 +72,8 @@ class ActionsPanel extends StatelessWidget {
                   borderRadius: borderRadius,
                 ),
                 child: Center(
-                    child: new SvgPicture.asset(
-                      'assets/sport.svg',
-                      color: colorFgBold,
-                      height: 45,
-                      width: 45,
-                    ))),
+                    child: Icon(Icons.play_arrow,
+                        color: colorAccent, size: 60))),
           ),
           Expanded(
               flex: 1,
