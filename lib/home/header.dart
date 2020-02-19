@@ -97,12 +97,16 @@ class HeaderPanel extends StatelessWidget {
                       boxShadow: elevationShadowExtraLight,
                       borderRadius: borderRadius,
                     ),
-                    child: Icon(
-                      (isConnected)
-                          ? Icons.phonelink_erase
-                          : Icons.bluetooth_searching,
-                      color: textHeading.color,
-                      size: 25,
+                    child: Tooltip(
+                      verticalOffset: -70,
+                      message: isConnected ? 'Disconnect eSense Device' : 'Connect to eSense Device',
+                      child: Icon(
+                        isConnected
+                            ? Icons.phonelink_erase
+                            : Icons.bluetooth_searching,
+                        color: textHeading.color,
+                        size: 25,
+                      ),
                     )
                 )
                 ,

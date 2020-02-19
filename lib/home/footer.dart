@@ -46,9 +46,13 @@ class ActionsPanel extends StatelessWidget {
               ),
               child: GestureDetector(
                 onTap: () => finishWorkout(),
-                child: Center(
-                  child: Icon(Icons.stop,
-                      color: Colors.red, size: 60),
+                child: Tooltip(
+                  verticalOffset: -70,
+                  message: 'Stop and Save Workout',
+                  child: Center(
+                    child: Icon(Icons.stop,
+                        color: Colors.red, size: 60),
+                  ),
                 ),
               )),
         ]
@@ -57,8 +61,12 @@ class ActionsPanel extends StatelessWidget {
             flex: 1,
             child: GestureDetector(
               onTap: resetSummary,
-              child: Icon(Icons.delete_outline,
-                  color: colorFgBold, size: 30),
+              child: Tooltip(
+                verticalOffset: -70,
+                message: "Reset Today's Workout",
+                child: Icon(Icons.delete_outline,
+                    color: colorFgBold, size: 30),
+              ),
             ),
           ),
           GestureDetector(
@@ -71,17 +79,25 @@ class ActionsPanel extends StatelessWidget {
                   boxShadow: elevationShadowLight,
                   borderRadius: borderRadius,
                 ),
-                child: Center(
-                    child: Icon(Icons.play_arrow,
-                        color: colorAccent, size: 60))),
+                child: Tooltip(
+                  verticalOffset: -70,
+                  message: 'Start Workout',
+                  child: Center(
+                      child: Icon(Icons.play_arrow,
+                          color: colorAccent, size: 60)),
+                )),
           ),
           Expanded(
               flex: 1,
               child:
               GestureDetector(
                   onTap: () => setTextToSpeech(!textToSpeechEnabled),
-                  child: Icon(textToSpeechEnabled ? Icons.record_voice_over : Icons.volume_off,
-                      color: colorFgBold, size: 30))
+                  child: Tooltip(
+                    verticalOffset: -70,
+                    message: textToSpeechEnabled ? 'Turn off Text-to-speech' : 'Turn on Text-to-speech',
+                    child: Icon(textToSpeechEnabled ? Icons.record_voice_over : Icons.volume_off,
+                        color: colorFgBold, size: 30),
+                  ))
           ),
         ],
       )

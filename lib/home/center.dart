@@ -5,7 +5,10 @@ import 'package:one_up/model/summary.dart';
 import 'package:one_up/vars/constants.dart';
 
 class SummaryCarousel extends StatefulWidget {
-  SummaryCarousel(this.key, this.summaries, this.onPageChange, this.currentActivity, [this.debugCard]) : super(key: key);
+  SummaryCarousel(
+      this.key, this.summaries, this.onPageChange, this.currentActivity,
+      [this.debugCard])
+      : super(key: key);
 
   final String currentActivity;
   final Key key;
@@ -62,24 +65,29 @@ class _SummaryCarouselState extends State<SummaryCarousel> {
                 controller: controller,
                 scrollDirection: Axis.horizontal,
                 physics: BouncingScrollPhysics(),
-                itemCount: widget.debugCard != null ? widget.summaries.length + 1 : widget.summaries.length,
+                itemCount: widget.debugCard != null
+                    ? widget.summaries.length + 1
+                    : widget.summaries.length,
                 itemBuilder: (context, index) {
                   if (index == widget.summaries.length) {
                     return widget.debugCard;
                   }
                   var summary = widget.summaries[index];
-                  return SummaryCard(ValueKey(summary.id), summary, animatePage, lastPage, widget.currentActivity);
+                  return SummaryCard(ValueKey(summary.id), summary, animatePage,
+                      lastPage, widget.currentActivity);
                 })));
   }
 }
 
 class SummaryCard extends StatefulWidget {
-  const SummaryCard(this.key, this.summary, this.goToPage, this.lastPage, this.currentActivity) : super(key: key);
+  const SummaryCard(this.key, this.summary, this.goToPage, this.lastPage,
+      this.currentActivity)
+      : super(key: key);
   final Key key;
   final Summary summary;
   final void Function(int page) goToPage;
   final int lastPage;
-  final String  currentActivity;
+  final String currentActivity;
 
   @override
   _SummaryCardState createState() => _SummaryCardState();
@@ -119,9 +127,11 @@ class _SummaryCardState extends State<SummaryCard> {
             child: ListView(
                 scrollDirection: Axis.vertical,
                 children: widget.summary.counters.entries
-                    .map((entry) =>
-                    ActivityCounter(entry.key.toString(), entry.value, widget.currentActivity == entry.key.toString()))
-                    .toList() ??
+                        .map((entry) => ActivityCounter(
+                            entry.key.toString(),
+                            entry.value,
+                            widget.currentActivity == entry.key.toString()))
+                        .toList() ??
                     []),
           ),
         )
@@ -139,27 +149,40 @@ class _SummaryCardState extends State<SummaryCard> {
     var today = DateTime.now();
     bool isToday = today.day == date.day && today.month == date.month;
 
-    return GestureDetector(
-      onTap: () => widget.goToPage(widget.lastPage),
-      child: Container(
-          height: 60,
-          width: 60,
-          decoration: BoxDecoration(
-            color: colorBg,
-            boxShadow: elevationShadowLight,
-            borderRadius: borderRadius,
-          ),
-          child: Column(children: <Widget>[
-            Text(day.format(date),
-                style: isToday ? textCalendarDayToday : textCalendarDay),
-            Text(month.format(date).toUpperCase(), style: textCalendarMonth)
-          ])),
-    );
+    return isToday
+        ? Container(
+            height: 60,
+            width: 60,
+            child: Column(children: <Widget>[
+              Text(day.format(date), style: textCalendarDayToday),
+              Text(month.format(date).toUpperCase(), style: textCalendarMonth)
+            ]))
+        : GestureDetector(
+            onTap: () => widget.goToPage(widget.lastPage),
+            child: Tooltip(
+              verticalOffset: -70,
+              message: 'Go to Today',
+              child: Container(
+                  height: 60,
+                  width: 60,
+                  decoration: BoxDecoration(
+                    color: colorBg,
+                    boxShadow: elevationShadowLight,
+                    borderRadius: borderRadius,
+                  ),
+                  child: Column(children: <Widget>[
+                    Text(day.format(date), style: textCalendarDay),
+                    Text(month.format(date).toUpperCase(),
+                        style: textCalendarMonth)
+                  ])),
+            ),
+          );
   }
 }
 
 class ActivityCounter extends StatelessWidget {
   ActivityCounter(this.label, this.value, [this.active = false]);
+
   final String label;
   final int value;
   final bool active;
@@ -175,10 +198,9 @@ class ActivityCounter extends StatelessWidget {
             children: [
 //              Text('${label.split(' ').join('\n')}',
               Text('${label.length < 10 ? label : label.split(' ').join('\n')}',
-                  style:
-                      textActivityLabel.copyWith(
-                          fontWeight: FontWeight.w400,
-                          color: active ? colorAccent : textActivityLabel.color)),
+                  style: textActivityLabel.copyWith(
+                      fontWeight: FontWeight.w400,
+                      color: active ? colorAccent : textActivityLabel.color)),
               Text('$value', style: textActivityCounter),
             ]));
   }
