@@ -26,16 +26,16 @@ class ActivityClassifier {
 
   void setPosture() {
     if (phoneMovingAverage.x + 0.3 > phoneMovingAverage.z &&
-        phoneMovingAverage.z > phoneMovingAverage.y)
+        phoneMovingAverage.z > -phoneMovingAverage.y)
       bodyPosture = STANDING;
-    else if (phoneMovingAverage.y + 0.125 > phoneMovingAverage.x &&
+    else if (-phoneMovingAverage.y + 0.125 > phoneMovingAverage.x &&
         phoneMovingAverage.x > phoneMovingAverage.z)
       bodyPosture = CHEST_UP;
-    else if (phoneMovingAverage.z > phoneMovingAverage.y &&
-        phoneMovingAverage.y > phoneMovingAverage.x - 0.3)
+    else if (phoneMovingAverage.z > -phoneMovingAverage.y &&
+        -phoneMovingAverage.y > phoneMovingAverage.x - 0.3)
       bodyPosture = CHEST_DOWN;
-    else if (phoneMovingAverage.x > phoneMovingAverage.y &&
-        phoneMovingAverage.y > phoneMovingAverage.z)
+    else if (phoneMovingAverage.x > -phoneMovingAverage.y &&
+        -phoneMovingAverage.y > phoneMovingAverage.z)
       bodyPosture = KNEES_BENT;
     else
       bodyPosture = null;
