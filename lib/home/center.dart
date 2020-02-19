@@ -173,7 +173,8 @@ class ActivityCounter extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             mainAxisSize: MainAxisSize.max,
             children: [
-              Text('$label',
+//              Text('${label.split(' ').join('\n')}',
+              Text('${label.length < 10 ? label : label.split(' ').join('\n')}',
                   style:
                       textActivityLabel.copyWith(
                           fontWeight: FontWeight.w400,
