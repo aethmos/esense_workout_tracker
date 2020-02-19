@@ -86,7 +86,7 @@ class ActivityClassifier {
   void prepNextCheckpoint([dynamic data]) {
     inactivityTimer?.cancel();
     inactivityTimer = Timer.periodic(Duration(seconds: 3), resetCheckpoints);
-    checkpoints.add([phoneMovingAverage, eSenseMovingAverage, data ?? null]);
+    checkpoints.add([eSenseMovingAverage, data ?? null]);
     print('possible - $compatibleActivities');
     print('checkpoint - ${data ?? bodyPosture}');
   }
@@ -125,11 +125,9 @@ class ActivityClassifier {
           return;
       }
     } else {
-      var prevPhoneMovAvg = checkpoints.last[0];
-      var prevESenseMovAvg = checkpoints.last[1];
-      var prevDelta = checkpoints.last[2];
-      var phoneDelta = phoneMovingAverage - prevPhoneMovAvg;
-      var eSenseDelta = eSenseMovingAverage - prevESenseMovAvg;
+      var prevESenseMovAvg = checkpoints.last[0];
+      var prevDelta = checkpoints.last[1];
+      var currentDelta = eSenseMovingAverage - prevESenseMovAvg;
 
       if (compatibleActivities.contains(SITUPS)) {
         if (bodyPosture != CHEST_UP) {
@@ -157,17 +155,17 @@ class ActivityClassifier {
         if (bodyPosture != CHEST_DOWN) {
           compatibleActivities.remove(PUSHUPS);
         } else if (checkpoints.length == 1) {
-          prepNextCheckpoint(eSenseDelta);
+          prepNextCheckpoint(currentDelta);
         } else if (checkpoints.length == 2) {
-          if (prevDelta.x.sign != eSenseDelta.x.sign && eSenseDelta.x.abs() > 0.2) {
-            prepNextCheckpoint(eSenseDelta);
+          if (prevDelta.x.sign != currentDelta.x.sign && currentDelta.x.abs() > 0.2) {
+            prepNextCheckpoint(currentDelta);
           }
         } else if (checkpoints.length == 3) {
-          if (prevDelta.x.sign != eSenseDelta.x.sign && eSenseDelta.x.abs() > 0.2) {
+          if (prevDelta.x.sign != currentDelta.x.sign && currentDelta.x.abs() > 0.2) {
             submitActivity(PUSHUPS);
             checkpoints.removeLast();
             checkpoints.removeLast();
-            prepNextCheckpoint(eSenseDelta);
+            prepNextCheckpoint(currentDelta);
           }
         }
       }
@@ -175,15 +173,19 @@ class ActivityClassifier {
       if (compatibleActivities.contains(SQUATS)) {
         if (checkpoints.length == 1) {
           // CHEST UP: knees are bent over 90 deg, same leg position as sit-ups
-          if (bodyPosture == KNEES_BENT || bodyPosture == CHEST_UP)
+          if ((bodyPosture == KNEES_BENT || bodyPosture == CHEST_UP)) {
             prepNextCheckpoint();
-          else if (bodyPosture != STANDING) {
+          } else {
+            if (bodyPosture != STANDING) {
             compatibleActivities.remove(SQUATS);
+          }
           }
         } else if (checkpoints.length == 2) {
           if (bodyPosture == STANDING) {
             submitActivity(SQUATS);
             checkpoints.removeLast();
+            checkpoints.removeLast();
+            prepNextCheckpoint();
           } else if (bodyPosture != KNEES_BENT && bodyPosture != CHEST_UP) {
             compatibleActivities.remove(SQUATS);
           }
@@ -192,32 +194,31 @@ class ActivityClassifier {
 
       if (compatibleActivities.contains(JUMPING_JACKS)) {
         if (checkpoints.length == 1) {
-          prepNextCheckpoint(phoneDelta);
+          prepNextCheckpoint(currentDelta);
         } else if (checkpoints.length == 2) {
-          if (prevDelta.y.sign != phoneDelta.y.sign) {
-            if ((phoneDelta.y - phoneDelta.x).abs() > 0.3)
-              prepNextCheckpoint(phoneDelta);
+          if (prevDelta.y.sign != currentDelta.y.sign) {
+            if ((currentDelta.y - currentDelta.z).abs() > 0.1)
+              prepNextCheckpoint(currentDelta);
           }
         } else if (checkpoints.length == 3) {
-          if (prevDelta.y.sign != phoneDelta.y.sign) {
-            if ((phoneDelta.y - phoneDelta.x).abs() > 0.3)
-              prepNextCheckpoint(phoneDelta);
+          if (prevDelta.y.sign != currentDelta.y.sign) {
+            if ((currentDelta.y - currentDelta.z).abs() > 0.3)
+              prepNextCheckpoint(currentDelta);
           }
         } else if (checkpoints.length == 4) {
-          if (prevDelta.y.sign != phoneDelta.y.sign) {
-            if ((phoneDelta.y - phoneDelta.x).abs() > 0.3)
-              prepNextCheckpoint(phoneDelta);
+          if (prevDelta.y.sign != currentDelta.y.sign) {
+            if ((currentDelta.y - currentDelta.z).abs() > 0.1)
+              prepNextCheckpoint(currentDelta);
           }
         } else if (checkpoints.length == 5) {
-          if (prevDelta.y.sign != phoneDelta.y.sign) {
-            if ((phoneDelta.y - phoneDelta.x).abs() > 0.3) {
+          if (prevDelta.y.sign != currentDelta.y.sign) {
+            if ((currentDelta.y - currentDelta.z).abs() > 0.4) {
               submitActivity(JUMPING_JACKS);
               checkpoints.removeLast();
               checkpoints.removeLast();
               checkpoints.removeLast();
               checkpoints.removeLast();
-              checkpoints.removeLast();
-              prepNextCheckpoint(phoneDelta);
+              prepNextCheckpoint(currentDelta);
             }
           }
         }
