@@ -25,17 +25,17 @@ class ActivityClassifier {
   void Function(String) onActivity;
 
   void setPosture() {
-    if (phoneMovingAverage.x + 0.3 > phoneMovingAverage.z &&
-        phoneMovingAverage.z > -phoneMovingAverage.y)
+    if (phoneMovingAverage.x + 0.3 > -phoneMovingAverage.z &&
+        -phoneMovingAverage.z > phoneMovingAverage.y)
       bodyPosture = STANDING;
-    else if (-phoneMovingAverage.y + 0.125 > phoneMovingAverage.x &&
-        phoneMovingAverage.x > phoneMovingAverage.z)
+    else if (phoneMovingAverage.y + 0.125 > phoneMovingAverage.x &&
+        phoneMovingAverage.x > -phoneMovingAverage.z)
       bodyPosture = CHEST_UP;
-    else if (phoneMovingAverage.z > -phoneMovingAverage.y &&
-        -phoneMovingAverage.y > phoneMovingAverage.x - 0.3)
+    else if (-phoneMovingAverage.z > phoneMovingAverage.y &&
+        -phoneMovingAverage.z > phoneMovingAverage.x)
       bodyPosture = CHEST_DOWN;
-    else if (phoneMovingAverage.x > -phoneMovingAverage.y &&
-        -phoneMovingAverage.y > phoneMovingAverage.z)
+    else if (phoneMovingAverage.x > phoneMovingAverage.y &&
+        phoneMovingAverage.y > -phoneMovingAverage.z)
       bodyPosture = KNEES_BENT;
     else
       bodyPosture = null;
@@ -129,6 +129,7 @@ class ActivityClassifier {
       var prevESenseMovAvg = checkpoints.last[1];
       var prevDelta = checkpoints.last[2];
       var phoneDelta = phoneMovingAverage - prevPhoneMovAvg;
+      var eSenseDelta = eSenseMovingAverage - prevESenseMovAvg;
 
       if (compatibleActivities.contains(SITUPS)) {
         if (bodyPosture != CHEST_UP) {
@@ -156,24 +157,25 @@ class ActivityClassifier {
         if (bodyPosture != CHEST_DOWN) {
           compatibleActivities.remove(PUSHUPS);
         } else if (checkpoints.length == 1) {
-          prepNextCheckpoint(phoneDelta);
+          prepNextCheckpoint(eSenseDelta);
         } else if (checkpoints.length == 2) {
-          if (prevDelta.y.sign != phoneDelta.y.sign) {
-            prepNextCheckpoint(phoneDelta);
+          if (prevDelta.x.sign != eSenseDelta.x.sign && eSenseDelta.x.abs() > 0.2) {
+            prepNextCheckpoint(eSenseDelta);
           }
         } else if (checkpoints.length == 3) {
-          if (prevDelta.y.sign != phoneDelta.y.sign) {
+          if (prevDelta.x.sign != eSenseDelta.x.sign && eSenseDelta.x.abs() > 0.2) {
             submitActivity(PUSHUPS);
             checkpoints.removeLast();
             checkpoints.removeLast();
-            prepNextCheckpoint(phoneDelta);
+            prepNextCheckpoint(eSenseDelta);
           }
         }
       }
 
       if (compatibleActivities.contains(SQUATS)) {
         if (checkpoints.length == 1) {
-          if (bodyPosture == KNEES_BENT)
+          // CHEST UP: knees are bent over 90 deg, same leg position as sit-ups
+          if (bodyPosture == KNEES_BENT || bodyPosture == CHEST_UP)
             prepNextCheckpoint();
           else if (bodyPosture != STANDING) {
             compatibleActivities.remove(SQUATS);
@@ -182,7 +184,7 @@ class ActivityClassifier {
           if (bodyPosture == STANDING) {
             submitActivity(SQUATS);
             checkpoints.removeLast();
-          } else if (bodyPosture != KNEES_BENT) {
+          } else if (bodyPosture != KNEES_BENT && bodyPosture != CHEST_UP) {
             compatibleActivities.remove(SQUATS);
           }
         }
@@ -190,29 +192,35 @@ class ActivityClassifier {
 
       if (compatibleActivities.contains(PULLUPS)) {
         // knees bent too far, probably squats
-        if (phoneMovingAverage.y > -0.5) {
+        if (phoneMovingAverage.z > 0.5) {
           compatibleActivities.remove(PULLUPS);
         } else if (checkpoints.length == 1) {
           prepNextCheckpoint(phoneDelta);
         } else if (checkpoints.length == 2) {
           if (prevDelta.y.sign != phoneDelta.y.sign) {
-            if (phoneDelta.y.sign < 0 &&
-                phoneMovingAverage.y + 0.75 > phoneMovingAverage.z) {
+            if ((phoneDelta.y - phoneDelta.x).abs() > 0.3)
               prepNextCheckpoint(phoneDelta);
-            } else {
-              compatibleActivities.remove(PULLUPS);
-            }
           }
         } else if (checkpoints.length == 3) {
           if (prevDelta.y.sign != phoneDelta.y.sign) {
-            if (phoneDelta.y.sign < 0 &&
-                phoneMovingAverage.y + 0.75 > phoneMovingAverage.z) {
+            if ((phoneDelta.y - phoneDelta.x).abs() > 0.3)
+              prepNextCheckpoint(phoneDelta);
+          }
+        } else if (checkpoints.length == 4) {
+          if (prevDelta.y.sign != phoneDelta.y.sign) {
+            if ((phoneDelta.y - phoneDelta.x).abs() > 0.3)
+              prepNextCheckpoint(phoneDelta);
+          }
+        } else if (checkpoints.length == 5) {
+          if (prevDelta.y.sign != phoneDelta.y.sign) {
+            if ((phoneDelta.y - phoneDelta.x).abs() > 0.3) {
               submitActivity(PULLUPS);
               checkpoints.removeLast();
               checkpoints.removeLast();
+              checkpoints.removeLast();
+              checkpoints.removeLast();
+              checkpoints.removeLast();
               prepNextCheckpoint(phoneDelta);
-            } else {
-              compatibleActivities.remove(PULLUPS);
             }
           }
         }
