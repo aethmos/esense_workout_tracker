@@ -12,14 +12,14 @@ class ActivityClassifier {
   SensorValues eSenseMovingAverage;
 
   int phoneWindowSize = 100;
-  double phoneLowpassThreshold = 0.3;
+  double phoneLowpassThreshold = 0.2;
   SensorValues phoneMovingAverage;
 
   // activity conditions
   String currentActivity;
   String bodyPosture;
   List<String> compatibleActivities = List();
-  List<List<SensorValues>> checkpoints = List();
+  List<List<dynamic>> checkpoints = List();
   Timer inactivityTimer;
 
   void Function(String) onActivity;
@@ -83,7 +83,7 @@ class ActivityClassifier {
     if (currentActivity != NEUTRAL) submitActivity(NEUTRAL);
   }
 
-  void prepNextCheckpoint([SensorValues data]) {
+  void prepNextCheckpoint([dynamic data]) {
     inactivityTimer?.cancel();
     inactivityTimer = Timer.periodic(Duration(seconds: 3), resetCheckpoints);
     checkpoints.add([phoneMovingAverage, eSenseMovingAverage, data ?? null]);
@@ -102,24 +102,28 @@ class ActivityClassifier {
   void classifyActivity() {
     if (compatibleActivities.isEmpty) {
       resetCheckpoints();
-
+    }
+    if (checkpoints.isEmpty) {
       switch (bodyPosture) {
         case KNEES_BENT:
-          compatibleActivities.add(SQUATS);
+          compatibleActivities = [SQUATS];
+          prepNextCheckpoint();
           break;
         case STANDING:
-          compatibleActivities.add(PULLUPS);
+          compatibleActivities = [PULLUPS];
+          prepNextCheckpoint();
           break;
         case CHEST_DOWN:
-          compatibleActivities.add(PUSHUPS);
+          compatibleActivities = [PUSHUPS];
+          prepNextCheckpoint();
           break;
         case CHEST_UP:
-          compatibleActivities.add(SITUPS);
+          compatibleActivities = [SITUPS];
+          prepNextCheckpoint(eSenseMovingAverage.z - eSenseMovingAverage.x - 0.15);
           break;
         default:
           return;
       }
-      prepNextCheckpoint();
     } else {
       var prevPhoneMovAvg = checkpoints.last[0];
       var prevESenseMovAvg = checkpoints.last[1];
@@ -130,19 +134,19 @@ class ActivityClassifier {
         if (bodyPosture != CHEST_UP) {
           compatibleActivities.remove(SITUPS);
         } else {
-          SensorValues eSenseDelta = eSenseMovingAverage - prevESenseMovAvg;
+          double currentDelta = eSenseMovingAverage.z - eSenseMovingAverage.x - 0.15;
           if (checkpoints.length == 1) {
-            prepNextCheckpoint(eSenseDelta);
+            if (prevDelta.sign != currentDelta.sign)
+              prepNextCheckpoint(currentDelta);
           } else if (checkpoints.length == 2) {
-            if (prevDelta.x.sign != eSenseDelta.x.sign) {
-              prepNextCheckpoint(eSenseDelta);
-            }
+            if (prevDelta.sign != currentDelta.sign)
+              prepNextCheckpoint(currentDelta);
           } else if (checkpoints.length == 3) {
-            if (prevDelta.x.sign != eSenseDelta.x.sign) {
+            if (prevDelta.sign != currentDelta.sign) {
               submitActivity(SITUPS);
               checkpoints.removeLast();
               checkpoints.removeLast();
-              prepNextCheckpoint(eSenseDelta);
+              prepNextCheckpoint(currentDelta);
             }
           }
         }
