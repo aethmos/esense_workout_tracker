@@ -14,6 +14,7 @@ const String CHEST_DOWN = 'Chest Down';
 const String KNEES_BENT = 'Knees Bent';
 
 final colorBg = Color(0xFFEAEAEA);
+final colorTooltipBg = Color(0xFF000000);
 
 final colorFgLight = Color(0xFF707070);
 final colorFg = Color(0xFF1E1E1E);

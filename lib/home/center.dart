@@ -160,6 +160,9 @@ class _SummaryCardState extends State<SummaryCard> {
         : GestureDetector(
             onTap: () => widget.goToPage(widget.lastPage),
             child: Tooltip(
+              decoration: BoxDecoration(
+                  color: colorTooltipBg,
+                  borderRadius: borderRadius),
               verticalOffset: -70,
               message: 'Go to Today',
               child: Container(

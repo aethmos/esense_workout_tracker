@@ -38,29 +38,32 @@ class HeaderPanel extends StatelessWidget {
               Column(mainAxisAlignment: MainAxisAlignment.center, children: [
                 (isConnected)
                     ? Text(eSenseName, style: textHeading)
-                    : Container(
-                    width: 165,
-                    padding: EdgeInsets.only(left: 10),
-                    decoration: BoxDecoration(
-                        color: colorBg,
-                        boxShadow: elevationShadowLight,
-                        borderRadius: borderRadius),
-                    child: TextFormField(
-                      style: textHeading.copyWith(color: colorFgLight),
-                      autofocus: false,
-                      autocorrect: false,
-                      showCursor: true,
-                      cursorRadius: Radius.circular(3),
-                      textCapitalization: TextCapitalization.none,
-                      initialValue: eSenseName,
-                      decoration: InputDecoration(
-                        focusedBorder: InputBorder.none,
-                        errorBorder: InputBorder.none,
-                        border: InputBorder.none,
-                      ),
-                      onChanged: setESenseName,
-                      onFieldSubmitted: connect,
-                    )),
+                    : Tooltip(
+                      message: 'Tap to Enter Device Name',
+                      child: Container(
+                      width: 170,
+                      padding: EdgeInsets.only(left: 10),
+                      decoration: BoxDecoration(
+                          color: Colors.white70,
+                          boxShadow: elevationShadowLight,
+                          borderRadius: borderRadius),
+                      child: TextFormField(
+                        style: textHeading.copyWith(color: colorFgLight),
+                        autofocus: false,
+                        autocorrect: false,
+                        showCursor: true,
+                        cursorRadius: Radius.circular(3),
+                        textCapitalization: TextCapitalization.none,
+                        initialValue: eSenseName,
+                        decoration: InputDecoration(
+                          focusedBorder: InputBorder.none,
+                          errorBorder: InputBorder.none,
+                          border: InputBorder.none,
+                        ),
+                        onChanged: setESenseName,
+                        onFieldSubmitted: connect,
+                      )),
+                    ),
                 Container(
                     margin: EdgeInsets.only(top: 5),
                     child: Row(
@@ -98,6 +101,9 @@ class HeaderPanel extends StatelessWidget {
                       borderRadius: borderRadius,
                     ),
                     child: Tooltip(
+                      decoration: BoxDecoration(
+                          color: colorTooltipBg,
+                          borderRadius: borderRadius),
                       verticalOffset: -70,
                       message: isConnected ? 'Disconnect eSense Device' : 'Connect to eSense Device',
                       child: Icon(
